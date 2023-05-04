@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8258867373646871866
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 906437584689710022}
+  - component: {fileID: 6743108753610421751}
+  m_Layer: 0
+  m_Name: Obstacle Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &906437584689710022
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8258867373646871866}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6743108753610421751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8258867373646871866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cb0057c88fa02a4a839883d6ead8488, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  structures:
+  - {fileID: 7387994548160332806, guid: 47f3b24bf6d14eb49ad06b947580daf1, type: 3}
+  - {fileID: 1431667639808274621, guid: cc87e597810a3be449393b9115d73c8e, type: 3}
+  - {fileID: 3034591104441844440, guid: a0d57c93c965ccd4c95dca54e9fa3cc0, type: 3}
+  - {fileID: 3034591104441844440, guid: c88eda3fe62d04c4588437d798182d13, type: 3}
+  - {fileID: 2857324283504622121, guid: a85837fb62f442545a349e36fda351a2, type: 3}
+  - {fileID: 6643688103161687224, guid: f382cfb7e2b8dd740b783d69db742026, type: 3}
+  - {fileID: 2146358489586596950, guid: e4960764b39f14c4e8f3b8c6f78b57e1, type: 3}
+  - {fileID: 8008975929770402708, guid: 97a9b56c844aa6f45b8d3fffe3bf53cb, type: 3}
