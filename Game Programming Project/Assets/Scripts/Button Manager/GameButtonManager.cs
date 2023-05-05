@@ -124,7 +124,7 @@ public class GameButtonManager : MonoBehaviour
 
     IEnumerator DelayTimescale(float delay)
     {
-        yield return new WaitForSecondsRealtime(delay);
+        yield return new WaitForSecondsRealtime(delay + 0.05f);
         Time.timeScale = 1f;
     }
 }

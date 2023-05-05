@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class SliderManager : MonoBehaviour
@@ -23,7 +24,8 @@ public class SliderManager : MonoBehaviour
     public void changeSensitivity()
     {
         TemporaryData.instance.sensitivity = sensitivity.value;
-        PlayerMovement.instance.ResetSensitivity();
+        if(SceneManager.GetActiveScene().name == "Game" || SceneManager.GetActiveScene().name == "Infinite")
+            PlayerMovement.instance.ResetSensitivity();
     }
 
     public void changeSimulationDistance()

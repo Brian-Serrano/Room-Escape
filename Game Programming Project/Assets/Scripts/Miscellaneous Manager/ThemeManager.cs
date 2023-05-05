@@ -6,7 +6,7 @@ public class ThemeManager : MonoBehaviour
 {
     [HideInInspector] public static ThemeManager instance;
 
-    private GameObject[] slots;
+    private List<GameObject> slots;
 
     [HideInInspector] public List<GameObject> statusSlots;
     [HideInInspector] public int selectedMaterial;
@@ -17,12 +17,18 @@ public class ThemeManager : MonoBehaviour
     {
         instance = this;
 
-        slots = GameObject.FindGameObjectsWithTag("Slots");
+        slots = new List<GameObject>();
         statusSlots = new List<GameObject>();
+
+        Transform content = transform.GetChild(0).GetChild(0);
+        for (int i = 0; i < content.childCount; i++)
+        {
+            slots.Add(content.Find("Slot " + (i + 1)).gameObject);
+        }
 
         selectedMaterial = 0;
 
-        for(int i = 0; i < slots.Length; i++)
+        for(int i = 0; i < slots.Count; i++)
         {
             statusSlots.Add(slots[i].transform.Find("Status").gameObject);
 

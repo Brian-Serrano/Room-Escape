@@ -627,9 +627,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 760136888}
-        m_TargetAssemblyTypeName: LoginManager, Assembly-CSharp
-        m_MethodName: Login
+      - m_Target: {fileID: 760136889}
+        m_TargetAssemblyTypeName: ResetPasswordManager, Assembly-CSharp
+        m_MethodName: ResetPassword
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
