@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -35,6 +36,7 @@ public class LeaderboardManager : MonoBehaviour
     public TMP_Text errorTxt;
     public ConfigHandler configHandler;
     public GameObject background;
+    public Animator crossfade;
 
     [Header("Audio Mixer")]
     public AudioMixer audioMixer;
@@ -59,8 +61,6 @@ public class LeaderboardManager : MonoBehaviour
 
         SelectTypeTab();
         SelectAroundTab();
-
-        SetMaterials(background.GetComponentsInChildren<IMaterialController>());
 
         if (Application.internetReachability != NetworkReachability.NotReachable)
         {
@@ -100,6 +100,16 @@ public class LeaderboardManager : MonoBehaviour
     {
         audioMixer.SetFloat("MusicVolume", Mathf.Log10(playerData.musicVolume) * 20);
         audioMixer.SetFloat("SFXVolume", Mathf.Log10(playerData.sfxVolume) * 20);
+
+        SetMaterials(background.GetComponentsInChildren<IMaterialController>());
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Back();
+        }
     }
 
     private void SetMaterials(IMaterialController[] matControllers)
@@ -301,6 +311,14 @@ public class LeaderboardManager : MonoBehaviour
 
     public void Back()
     {
-        SceneManager.LoadScene("Submenu");
+        buttonClickSfx.Play();
+        StartCoroutine(SwitchScene("Submenu"));
+    }
+
+    private IEnumerator SwitchScene(string name)
+    {
+        crossfade.SetBool("isOpen", true);
+        yield return new WaitForSecondsRealtime(0.3f);
+        SceneManager.LoadScene(name);
     }
 }

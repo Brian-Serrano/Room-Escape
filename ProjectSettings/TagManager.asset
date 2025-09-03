@@ -9,6 +9,7 @@ TagManager:
   - Water
   - Coin
   - Finish Line
+  - Floor
   layers:
   - Default
   - TransparentFX

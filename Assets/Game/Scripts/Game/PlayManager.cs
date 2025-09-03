@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -21,6 +22,7 @@ public class PlayManager : MonoBehaviour
     [Header("Others")]
     public ConfigHandler configHandler;
     public GameObject background;
+    public Animator crossfade;
 
     private PlayerData playerData;
 
@@ -39,6 +41,14 @@ public class PlayManager : MonoBehaviour
         SetMaterials(background.GetComponentsInChildren<IMaterialController>());
     }
 
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            BackButton();
+        }
+    }
+
     private void SetMaterials(IMaterialController[] matControllers)
     {
         foreach (IMaterialController matController in matControllers)
@@ -50,18 +60,25 @@ public class PlayManager : MonoBehaviour
     public void ClassicButton()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Game");
+        StartCoroutine(SwitchScene("Game"));
     }
 
     public void InfiniteButton()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Infinite");
+        StartCoroutine(SwitchScene("Infinite"));
     }
 
     public void BackButton()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Menu");
+        StartCoroutine(SwitchScene("Menu"));
+    }
+
+    private IEnumerator SwitchScene(string name)
+    {
+        crossfade.SetBool("isOpen", true);
+        yield return new WaitForSecondsRealtime(0.3f);
+        SceneManager.LoadScene(name);
     }
 }

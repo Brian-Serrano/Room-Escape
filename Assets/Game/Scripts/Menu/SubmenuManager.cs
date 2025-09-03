@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
 using TMPro;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
@@ -45,6 +44,7 @@ public class SubmenuManager : MonoBehaviour
     public GameObject spinnerContainer;
     public ConfigHandler configHandler;
     public GameObject background;
+    public Animator crossfade;
 
     [Header("Audio Mixer")]
     public AudioMixer audioMixer;
@@ -71,14 +71,40 @@ public class SubmenuManager : MonoBehaviour
         client = RoomEscapeHTTPClient.GetInstance();
 
         CheckLoginState();
-
-        SetMaterials(background.GetComponentsInChildren<IMaterialController>());
     }
 
     private void Start()
     {
         audioMixer.SetFloat("MusicVolume", Mathf.Log10(playerData.musicVolume) * 20);
         audioMixer.SetFloat("SFXVolume", Mathf.Log10(playerData.sfxVolume) * 20);
+
+        SetMaterials(background.GetComponentsInChildren<IMaterialController>());
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (!spinnerContainer.activeSelf)
+            {
+                if (questPanel.gameObject.activeSelf)
+                {
+                    CloseQuestPanel();
+                }
+                else if (loginPanel.gameObject.activeSelf)
+                {
+                    CloseLoginPanel();
+                }
+                else if (registerPanel.gameObject.activeSelf)
+                {
+                    CloseRegisterPanel();
+                }
+                else
+                {
+                    Back();
+                }
+            }
+        }
     }
 
     private void SetMaterials(IMaterialController[] matControllers)
@@ -92,19 +118,19 @@ public class SubmenuManager : MonoBehaviour
     public void Back()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Menu");
+        StartCoroutine(SwitchScene("Menu"));
     }
 
     public void Leaderboard()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Leaderboard");
+        StartCoroutine(SwitchScene("Leaderboard"));
     }
 
     public void Shop()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Shop");
+        StartCoroutine(SwitchScene("Shop"));
     }
 
     public void OpenLoginPanel()
@@ -413,5 +439,12 @@ public class SubmenuManager : MonoBehaviour
 
         questPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", false);
         StartCoroutine(DelayedPanelClose(questPanel));
+    }
+
+    private IEnumerator SwitchScene(string name)
+    {
+        crossfade.SetBool("isOpen", true);
+        yield return new WaitForSecondsRealtime(0.3f);
+        SceneManager.LoadScene(name);
     }
 }

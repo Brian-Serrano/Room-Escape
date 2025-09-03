@@ -33,8 +33,8 @@ public class RotatingObstacle : MonoBehaviour
         speed = orientation[Random.Range(0, orientation.Length)];
     }
 
-    void Update()
+    void FixedUpdate()
     {
-        rb.MoveRotation(rb.rotation * (Quaternion.Euler(0, speed * Time.deltaTime, 0)));
+        rb.MoveRotation(rb.rotation * (Quaternion.Euler(0, speed * Time.fixedDeltaTime, 0)));
     }
 }

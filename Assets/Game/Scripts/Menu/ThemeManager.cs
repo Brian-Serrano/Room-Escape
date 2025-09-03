@@ -17,6 +17,7 @@ public class ThemeManager : MonoBehaviour
     public TMP_Text coinsTxt;
     public TMP_Text themeTabTxt;
     public GameObject background;
+    public Animator crossfade;
 
     [Header("Texture Status Sprites")]
     public Sprite lockSprite;
@@ -33,7 +34,6 @@ public class ThemeManager : MonoBehaviour
 
     private int obstacleIndex = 0;
     private ThemeTab tab = ThemeTab.CLOTH;
-
 
     private void Awake()
     {
@@ -52,18 +52,30 @@ public class ThemeManager : MonoBehaviour
 
         UpdateObstacles();
         UpdateTab();
-
-        SetMaterials(background.GetComponentsInChildren<IMaterialController>());
     }
 
     private void Start()
     {
         audioMixer.SetFloat("MusicVolume", Mathf.Log10(playerData.musicVolume) * 20);
         audioMixer.SetFloat("SFXVolume", Mathf.Log10(playerData.sfxVolume) * 20);
+
+        SetMaterials(background.GetComponentsInChildren<IMaterialController>());
     }
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (helpPanel.gameObject.activeSelf)
+            {
+                CloseThemeHelpPanel();
+            }
+            else
+            {
+                Back();
+            }
+        }
+
         obstaclesContainer.GetChild(obstacleIndex).Rotate(25 * Time.deltaTime * Vector3.up);
     }
 
@@ -206,7 +218,7 @@ public class ThemeManager : MonoBehaviour
     public void Back()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Menu");
+        StartCoroutine(SwitchScene("Menu"));
     }
 
     public void OpenThemeHelpPanel()
@@ -227,5 +239,12 @@ public class ThemeManager : MonoBehaviour
     {
         yield return new WaitForSecondsRealtime(0.2f);
         panel.gameObject.SetActive(false);
+    }
+
+    private IEnumerator SwitchScene(string name)
+    {
+        crossfade.SetBool("isOpen", true);
+        yield return new WaitForSecondsRealtime(0.3f);
+        SceneManager.LoadScene(name);
     }
 }

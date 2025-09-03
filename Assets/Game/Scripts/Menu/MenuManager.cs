@@ -39,6 +39,8 @@ public class MenuManager : MonoBehaviour
 
     [Header("Help UI")]
     public Transform helpPanel;
+    public TMP_Text helpText;
+    public RectTransform helpTextParent;
 
     [Header("Confirm UI")]
     public Transform confirmPanel;
@@ -56,6 +58,7 @@ public class MenuManager : MonoBehaviour
     public TMP_Text coinsTxt;
     public TMP_Text userTxt;
     public GameObject spinnerContainer;
+    public Animator crossfade;
 
     [Header("Audio Mixer")]
     public AudioMixer audioMixer;
@@ -67,6 +70,7 @@ public class MenuManager : MonoBehaviour
     private PlayerData playerData;
     private ToastManager toastManager;
     private RoomEscapeHTTPClient client;
+    private BannerAdManager bannerAdManager;
 
     private List<int> levelsQuest = new List<int>() { 2, 4, 6 };
     private List<int> attemptsQuest = new List<int>() { 5, 10, 15 };
@@ -78,6 +82,7 @@ public class MenuManager : MonoBehaviour
         playerData = PlayerData.LoadData();
         toastManager = GetComponent<ToastManager>();
         client = RoomEscapeHTTPClient.GetInstance();
+        bannerAdManager = BannerAdManager.GetInstance();
 
         coinsTxt.text = playerData.coins.ToString();
 
@@ -138,25 +143,56 @@ public class MenuManager : MonoBehaviour
 
     private void Update()
     {
-        mainCamera.transform.Rotate(15 * Time.deltaTime * Vector3.up); ;
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (!spinnerContainer.activeSelf)
+            {
+                if (achievementPanel.gameObject.activeSelf)
+                {
+                    CloseAchievementsPanel();
+                }
+                else if (statsPanel.gameObject.activeSelf)
+                {
+                    CloseStatsPanel();
+                }
+                else if (settingsPanel.gameObject.activeSelf && !confirmPanel.gameObject.activeSelf)
+                {
+                    CloseSettingsPanel();
+                }
+                else if (helpPanel.gameObject.activeSelf)
+                {
+                    CloseHelpPanel();
+                }
+                else if (confirmPanel.gameObject.activeSelf)
+                {
+                    CloseConfirmPanel();
+                }
+                else
+                {
+                    Quit();
+                }
+            }
+        }
+
+        mainCamera.transform.Rotate(15 * Time.deltaTime * Vector3.up);
     }
 
     public void PlayButton()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Play");
+        StartCoroutine(SwitchScene("Play"));
     }
 
     public void ThemeButton()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Theme");
+        StartCoroutine(SwitchScene("Theme"));
     }
 
     public void SubmenuButton()
     {
         buttonClickSfx.Play();
-        SceneManager.LoadScene("Submenu");
+        StartCoroutine(SwitchScene("Submenu"));
     }
 
     public void Quit()
@@ -287,6 +323,15 @@ public class MenuManager : MonoBehaviour
         helpPanel.gameObject.SetActive(true);
         buttonClickSfx.Play();
         helpPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
+
+#if UNITY_ANDROID || UNITY_IOS
+        helpText.text = "Drag the joystick to move player.\r\nPress the arrow button on the right to jump.\r\nHold the circle button on the right to sprint.\r\nTo open door, get the player close to the switch, aim at it, and press the left mouse button.\r\nThe bar at the top shows your progress throughout the level.\r\nThe number below the bar shows the time remaining to complete the level.\r\nAvoid touching the spikes.\r\nThere is a light between two doors. The light on the door should be green, otherwise there will be a deduction of 10 seconds from the time in classic mode or deduction of score and life decrease in infinite mode.\r\nPress the surrender if wanted to end the level.";
+        helpTextParent.sizeDelta = new Vector2(helpTextParent.sizeDelta.x, 450);
+#else
+        helpText.text = "Hold the W key to move forward.\r\nHold the S key to move backward.\r\nHold the A key to move left.\r\nHold the D key to move right.\r\nPress the space key to jump.\r\nDouble tap the forward key to sprint.\r\nTo open door, get the player close to the switch, aim at it, and press the left mouse button.\r\nThe bar at the top shows your progress throughout the level.\r\nThe number below the bar shows the time remaining to complete the level.\r\nAvoid touching the spikes.\r\nThere is a light between two doors. The light on the door should be green, otherwise there will be a deduction of 10 seconds from the time in classic mode or deduction of score and life decrease in infinite mode.\r\nPress the surrender if wanted to end the level.";
+        helpTextParent.sizeDelta = new Vector2(helpTextParent.sizeDelta.x, 530);
+#endif
+
     }
 
     public void CloseHelpPanel()
@@ -528,5 +573,12 @@ public class MenuManager : MonoBehaviour
         }
 
         return array;
+    }
+
+    private IEnumerator SwitchScene(string name)
+    {
+        crossfade.SetBool("isOpen", true);
+        yield return new WaitForSecondsRealtime(0.3f);
+        SceneManager.LoadScene(name);
     }
 }

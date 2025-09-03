@@ -8,11 +8,11 @@ public class PlayerCollision : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Spike"))
         {
-            gameManager.OnSpikeHit();
+            gameManager.CheckRevive(DeathType.SPIKE_HIT);
         }
         if (collision.gameObject.CompareTag("Water"))
         {
-            gameManager.OnWaterHit();
+            gameManager.CheckRevive(DeathType.WATER_STUCK);
         }
     }
 

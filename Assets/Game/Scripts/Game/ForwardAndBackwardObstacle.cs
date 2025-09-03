@@ -20,12 +20,12 @@ public class ForwardAndBackwardObstacle : MonoBehaviour
 
         rb = GetComponent<Rigidbody>();
 
-        speed = Random.Range(3f, 5f);
+        speed = Random.Range(3f, 4f);
         pointOne = rb.position.z - 3.5f;
         pointTwo = rb.position.z + 3.5f;
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (rb.position.z >= pointTwo)
         {
@@ -38,11 +38,11 @@ public class ForwardAndBackwardObstacle : MonoBehaviour
 
         if (switchDirection)
         {
-            rb.MovePosition(rb.position + (speed * Time.deltaTime * Vector3.forward));
+            rb.MovePosition(rb.position + (speed * Time.fixedDeltaTime * Vector3.forward));
         }
         else
         {
-            rb.MovePosition(rb.position + (speed * Time.deltaTime * Vector3.back));
+            rb.MovePosition(rb.position + (speed * Time.fixedDeltaTime * Vector3.back));
         }
     }
 }

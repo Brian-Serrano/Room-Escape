@@ -5,14 +5,12 @@ public class SpinnerController : MonoBehaviour
 {
     private bool spinnerEnabled;
 
-    private Image spinnerImg;
     private RectTransform spinnerRect;
 
     void Start()
     {
         spinnerEnabled = gameObject.activeInHierarchy;
 
-        spinnerImg = GetComponent<Image>();
         spinnerRect = GetComponent<RectTransform>();
     }
 
@@ -20,7 +18,6 @@ public class SpinnerController : MonoBehaviour
     {
         if (spinnerEnabled)
         {
-            spinnerImg.fillAmount = (spinnerImg.fillAmount + Time.deltaTime) % 1;
             spinnerRect.eulerAngles += Vector3.back * (Time.deltaTime * 180f);
         }
     }

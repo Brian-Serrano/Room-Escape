@@ -13,6 +13,9 @@ public class InfiniteManager : MonoBehaviour
     public Transform player;
     public LayerMask doorSwitchLayerMask;
     public ConfigHandler configHandler;
+    public GameObject mobileUIController;
+    public DragArea dragArea;
+    public Animator crossfade;
 
     private Rigidbody rb;
     private Camera mainCamera;
@@ -35,6 +38,9 @@ public class InfiniteManager : MonoBehaviour
     public TMP_Text pauseScoreTxt;
     public TMP_Text loseScoreTxt;
 
+    public Button doubleCoinsButton;
+    public Transform noAdsPanel;
+
     [Header("Audio Mixer")]
     public AudioMixer audioMixer;
 
@@ -47,24 +53,36 @@ public class InfiniteManager : MonoBehaviour
     public AudioSource doorToggleSfx;
     public AudioSource deductionTimeSfx;
 
+    [Header("Revive UI")]
+    public Slider reviveSlider;
+    public Transform reviveMenu;
+    public Button buyRevive;
+    public Button watchAdRevive;
+    private bool isReviveActive = false;
+    private bool isRevivedPaused = false;
+    private int reviveChances = 2;
+    private float reviveTimer = 0f;
+
     [Header("Movement")]
     public float walkSpeed = 5f;
     public float sprintSpeed = 10f;
     public float jumpForce = 5f;
 
-    [Header("Crouch")]
-    public float crouchHeight = 0.5f;
-    public float standingHeight = 1f;
-    public float crouchSpeed = 5f;
-    private bool isCrouching = false;
-
     [Header("Sprint (Double-Tap W)")]
-    public float sprintDoubleClickTime = 0.5f;
+    public float sprintDoubleClickTime = 0.3f;
+#if UNITY_ANDROID || UNITY_IOS
+#else
     private float lastForwardPressTime = 0f;
     private bool doubleClickStarted = false;
+#endif
     private bool isSprinting = false;
 
-    private float playerHeight;
+    [Header("Door Toggle Input")]
+    public float maxTapDuration = 0.3f;
+    public float maxTapMovement = 50f;
+    private float tapStartTime;
+    private Vector2 tapStartPos;
+
     private float verticalRotation = 0f;
     private Vector3 moveDir;
     private int gameJumps = 0;
@@ -76,10 +94,14 @@ public class InfiniteManager : MonoBehaviour
     private int scoreDecrement = 0;
     private float gameTime = 0f;
     private int questsCompletedInOneGame = 0;
+    private Vector3 safePosition;
 
     private PlayerData playerData;
     private GameState gameState;
+    private DeathType deathType;
     private ToastManager toastManager;
+    private RewardedAdManager rewardedAdManager;
+    private InterstitialAdManager interstitialAdManager;
     private List<int> nums1;
     private List<int> nums2;
     private List<List<float>> obstaclesToCreate;
@@ -98,13 +120,19 @@ public class InfiniteManager : MonoBehaviour
         toastManager = GetComponent<ToastManager>();
         rb = player.GetComponent<Rigidbody>();
         gameState = GameState.PLAYING;
+        rewardedAdManager = RewardedAdManager.GetInstance();
+        interstitialAdManager = InterstitialAdManager.GetInstance();
 
         mainCamera = player.GetChild(0).GetComponent<Camera>();
 
+#if UNITY_ANDROID || UNITY_IOS
+        mobileUIController.SetActive(true);
+#else
+        mobileUIController.SetActive(false);
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        playerHeight = standingHeight;
+#endif
 
         nums1 = new List<int>() { 5, 8, 11 };
         nums2 = new List<int>() { 14, 18, 22, 26 };
@@ -178,12 +206,41 @@ public class InfiniteManager : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (noAdsPanel.gameObject.activeSelf)
+            {
+                CloseNoAdsPanel();
+            }
+            else
+            {
+                switch (gameState)
+                {
+                    case GameState.PLAYING:
+                        PauseButton();
+                        break;
+                    case GameState.PAUSE:
+                        HomeButton();
+                        break;
+                    case GameState.LOSE:
+                        HomeButton();
+                        break;
+                    case GameState.WIN:
+                        HomeButton();
+                        break;
+                    case GameState.REVIVE:
+                        reviveTimer = 0f;
+                        break;
+                }
+            }
+        }
+
         playerData.totalTime += Time.deltaTime;
         gameTime += Time.deltaTime;
 
         gameScore = Mathf.Max(gameScore, player.position.z - startPosition) - scoreDecrement;
 
-        scoreTxt.text = "Score: " + Mathf.RoundToInt(gameScore);
+        scoreTxt.text = "Score: " + Mathf.Max(Mathf.RoundToInt(gameScore), 0);
 
         if (obstacleOffset * 20 <= player.position.z + 200)
         {
@@ -202,68 +259,77 @@ public class InfiniteManager : MonoBehaviour
             }
         }
 
-        HandleMouseLook();
-        HandleInput();
-        HandleCrouch();
-        HandleSprint();
-        HandleJump();
-        HandleDoorToggle();
-    }
+        if (isReviveActive && !isRevivedPaused)
+        {
+            reviveTimer -= Time.unscaledDeltaTime;
 
-    void FixedUpdate()
-    {
-        MovePlayer();
-    }
+            reviveSlider.value = reviveTimer / 5f;
 
-    private void HandleMouseLook()
-    {
+            if (reviveTimer <= 0f)
+            {
+                reviveMenu.gameObject.SetActive(false);
+
+                isReviveActive = false;
+
+                SetGameOver();
+            }
+        }
+
+        CheckSafePosition();
+
+#if UNITY_ANDROID || UNITY_IOS
+        float sensitivity = (playerData.sensitivity * 100) + 20;
+
+        float mouseX = 0f;
+        float mouseY = 0f;
+
+        for (int i = 0; i < Input.touchCount; i++)
+        {
+            Touch touch = Input.GetTouch(i);
+
+            if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+                continue;
+
+            if (touch.phase == TouchPhase.Moved)
+            {
+                Vector2 delta = touch.deltaPosition;
+                mouseX = delta.x * sensitivity * Time.deltaTime;
+                mouseY = delta.y * sensitivity * Time.deltaTime;
+
+                break;
+            }
+        }
+#else
         float sensitivity = (playerData.sensitivity * 500) + 200;
 
         float mouseX = Input.GetAxisRaw("Mouse X") * sensitivity * Time.deltaTime;
         float mouseY = Input.GetAxisRaw("Mouse Y") * sensitivity * Time.deltaTime;
+#endif
 
         player.transform.Rotate(Vector3.up * mouseX);
 
         verticalRotation -= mouseY;
         verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f);
         mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
-    }
 
-    private void HandleInput()
-    {
+#if UNITY_ANDROID || UNITY_IOS
+        float x = dragArea.Horizontal();
+        float z = dragArea.Vertical();
+
+        Vector3 forward = player.transform.forward * z;
+        Vector3 right = player.transform.right * x;
+        moveDir = forward + right;
+#else
         float x = Input.GetAxisRaw("Horizontal");
         float z = Input.GetAxisRaw("Vertical");
 
         Vector3 forward = player.transform.forward * z;
         Vector3 right = player.transform.right * x;
         moveDir = (forward + right).normalized;
-    }
+#endif
 
-    private void MovePlayer()
-    {
-        float speed = isSprinting ? sprintSpeed : walkSpeed;
-        Vector3 targetPos = rb.position + speed * Time.fixedDeltaTime * moveDir;
-        rb.MovePosition(targetPos);
-    }
-
-    private void HandleCrouch()
-    {
-        if (Input.GetKeyDown(KeyCode.LeftControl))
-            isCrouching = true;
-        else if (Input.GetKeyUp(KeyCode.LeftControl))
-            isCrouching = false;
-
-        float targetHeight = isCrouching ? crouchHeight : standingHeight;
-        playerHeight = Mathf.Lerp(playerHeight, targetHeight, Time.deltaTime * crouchSpeed);
-
-        // Smoothly lower/raise camera instead of scaling player
-        Vector3 camLocalPos = mainCamera.transform.localPosition;
-        camLocalPos.y = playerHeight;
-        mainCamera.transform.localPosition = camLocalPos;
-    }
-
-    private void HandleSprint()
-    {
+#if UNITY_ANDROID || UNITY_IOS
+#else
         if (Input.GetKeyDown(KeyCode.W))
         {
             if (Time.time - lastForwardPressTime < sprintDoubleClickTime)
@@ -284,11 +350,75 @@ public class InfiniteManager : MonoBehaviour
         // Reset double click if too much time has passed
         if (Time.time - lastForwardPressTime > sprintDoubleClickTime)
             doubleClickStarted = false;
+
+
+        if (Input.GetKeyDown(KeyCode.Space) && GroundCheck())
+        {
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            playerData.totalJumps++;
+            gameJumps++;
+            jumpSfx.Play();
+        };
+#endif
+        if (gameState == GameState.PLAYING)
+        {
+#if UNITY_ANDROID || UNITY_IOS
+            // Touch version (mobile)
+            if (Input.touchCount > 0)
+            {
+                foreach (Touch touch in Input.touches)
+                {
+                    if (touch.phase == TouchPhase.Began)
+                    {
+                        tapStartTime = Time.time;
+                        tapStartPos = touch.position;
+                    }
+
+                    if (touch.phase == TouchPhase.Ended)
+                    {
+                        if (Time.time - tapStartTime <= maxTapDuration &&
+                            Vector2.Distance(touch.position, tapStartPos) <= maxTapMovement)
+                        {
+                            ToggleDoor();
+                        }
+                    }
+                }
+            }
+#else
+            // Mouse version (for testing in editor)
+            if (Input.GetMouseButtonDown(0))
+            {
+                tapStartTime = Time.time;
+                tapStartPos = Input.mousePosition;
+            }
+
+            if (Input.GetMouseButtonUp(0))
+            {
+                if (Time.time - tapStartTime <= maxTapDuration &&
+                    Vector2.Distance((Vector2)Input.mousePosition, tapStartPos) <= maxTapMovement)
+                {
+                    ToggleDoor();
+                }
+            }
+#endif
+        }
     }
 
-    private void HandleJump()
+    void FixedUpdate()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && !isCrouching && GroundCheck())
+        float speed = isSprinting ? sprintSpeed : walkSpeed;
+        Vector3 targetPos = rb.position + speed * Time.fixedDeltaTime * moveDir;
+        rb.MovePosition(targetPos);
+    }
+
+#if UNITY_ANDROID || UNITY_IOS
+    public void OnSprintDown() => isSprinting = true;
+
+    public void OnSprintUp() => isSprinting = false;
+
+    public void Jump()
+    {
+        if (GroundCheck())
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             playerData.totalJumps++;
@@ -296,21 +426,22 @@ public class InfiniteManager : MonoBehaviour
             jumpSfx.Play();
         }
     }
+#endif
 
-    private void HandleDoorToggle()
+    private void ToggleDoor()
     {
-        if (Input.GetKeyDown(KeyCode.Mouse0))
+        Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
+        if (Physics.Raycast(ray, out RaycastHit hitInfo, 3f, doorSwitchLayerMask))
         {
-            Ray ray = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
-            if (Physics.Raycast(ray, out RaycastHit hitInfo, 3f, doorSwitchLayerMask))
+            Collider hitObject = hitInfo.collider;
+            Transform wall = hitObject.transform.parent;
+
+            DoorController leftDoor = hitObject.transform.GetChild(0).GetComponent<DoorController>();
+            DoorController rightDoor = hitObject.transform.GetChild(1).GetComponent<DoorController>();
+            DoorLightController lights = wall.GetChild(0).GetComponent<DoorLightController>();
+
+            if (!leftDoor.isOpen && !rightDoor.isOpen)
             {
-                Collider hitObject = hitInfo.collider;
-                Transform wall = hitObject.transform.parent;
-
-                DoorController leftDoor = hitObject.transform.GetChild(0).GetComponent<DoorController>();
-                DoorController rightDoor = hitObject.transform.GetChild(1).GetComponent<DoorController>();
-                DoorLightController lights = wall.GetChild(0).GetComponent<DoorLightController>();
-
                 if (lights.toggle)
                 {
                     if (hitObject.gameObject.name == wall.GetChild(1).gameObject.name)
@@ -337,9 +468,14 @@ public class InfiniteManager : MonoBehaviour
     {
         scoreDecrement += 20;
         gameLife--;
-        lifeTxt.text = "Life: " + gameLife;
+        lifeTxt.text = "Life: " + Mathf.Max(gameLife, 0);
         deductionTxt.text = "SCORE DEDUCTED";
         deductionTimeSfx.Play();
+
+        if (gameLife <= 0 && gameState == GameState.PLAYING)
+        {
+            CheckRevive(DeathType.ZERO_LIVES);
+        }
 
         yield return new WaitForSeconds(2);
 
@@ -390,7 +526,6 @@ public class InfiniteManager : MonoBehaviour
     // home button
     public void HomeButton()
     {
-        Time.timeScale = 1f;
         buttonClickSfx.Play();
 
         if (gameState == GameState.PAUSE)
@@ -398,14 +533,12 @@ public class InfiniteManager : MonoBehaviour
             UpdateDataWhenLose();
         }
 
-        // todo: add fade in-out transition effect
-        SceneManager.LoadScene("Play");
+        StartCoroutine(SwitchScene("Play"));
     }
 
     // retry and next level buttons
     public void RetryButton()
     {
-        Time.timeScale = 1f;
         buttonClickSfx.Play();
 
         if (gameState == GameState.PAUSE)
@@ -413,17 +546,14 @@ public class InfiniteManager : MonoBehaviour
             UpdateDataWhenLose();
         }
 
-        // todo: add fade in-out transition effect
-        SceneManager.LoadScene("Infinite");
+        StartCoroutine(SwitchScene("Infinite"));
     }
 
     public void ShopButton()
     {
-        Time.timeScale = 1f;
         buttonClickSfx.Play();
         playerData.SaveData();
-        // todo: add fade in-out transition effect
-        SceneManager.LoadScene("Shop");
+        StartCoroutine(SwitchScene("Shop"));
     }
 
     private void UpdateMusicVolume()
@@ -502,7 +632,7 @@ public class InfiniteManager : MonoBehaviour
     private void UpdateDataWhenLose()
     {
         playerData.totalAttempts++;
-        playerData.highScore = Mathf.Max(playerData.highScore, Mathf.RoundToInt(gameScore));
+        playerData.highScore = Mathf.Max(playerData.highScore, Mathf.Max(Mathf.RoundToInt(gameScore), 0));
         playerData.coins += gameCoinsCollected;
         playerData.totalCoins += gameCoinsCollected;
 
@@ -523,9 +653,6 @@ public class InfiniteManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        gameOverPanel.gameObject.SetActive(true);
-        gameOverPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
-        loseSfx.Play();
         StopAllAudio();
 
         UpdateDataWhenLose();
@@ -533,18 +660,193 @@ public class InfiniteManager : MonoBehaviour
         loseCoinsTxt.text = gameCoinsCollected.ToString();
         loseJumpsTxt.text = gameJumps.ToString();
         loseTimeTxt.text = Mathf.RoundToInt(gameTime).ToString();
-        loseScoreTxt.text = "Score: " + Mathf.RoundToInt(gameScore).ToString();
+        loseScoreTxt.text = "Score: " + Mathf.Max(Mathf.RoundToInt(gameScore), 0).ToString();
 
+        doubleCoinsButton.onClick.RemoveAllListeners();
+
+        if (gameCoinsCollected > 0)
+        {
+            doubleCoinsButton.onClick.AddListener(() =>
+            {
+                toastManager.PauseToasts();
+                buttonClickSfx.Play();
+
+                rewardedAdManager.ShowRewardedAd(() => { }, () =>
+                {
+                    playerData.coins += gameCoinsCollected;
+                    playerData.totalCoins += gameCoinsCollected;
+
+                    loseCoinsTxt.text = (gameCoinsCollected * 2).ToString();
+
+                    playerData.SaveData();
+
+                    doubleCoinsButton.interactable = false;
+                    doubleCoinsButton.GetComponentInChildren<TMP_Text>().text = "Claimed";
+
+                    toastManager.ResumeToasts();
+
+                    StartCoroutine(SetPauseAfterAd());
+                }, () =>
+                {
+                    OpenNoAdsPanel();
+
+                    toastManager.ResumeToasts();
+
+                    StartCoroutine(SetPauseAfterAd());
+                });
+            });
+        }
+        else
+        {
+            doubleCoinsButton.interactable = false;
+        }
+        
         Time.timeScale = 0f;
+
+        if (Mathf.RoundToInt(gameTime) > 20)
+        {
+            toastManager.PauseToasts();
+
+            interstitialAdManager.ShowInterstitial(() =>
+            {
+                gameOverPanel.gameObject.SetActive(true);
+                gameOverPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
+                loseSfx.Play();
+                StartCoroutine(SetPauseAfterAd());
+                toastManager.ResumeToasts();
+            });
+        }
+        else
+        {
+            gameOverPanel.gameObject.SetActive(true);
+            gameOverPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
+            loseSfx.Play();
+        }
     }
 
-    public void OnWaterHit()
+    private void CheckSafePosition()
+    {
+        if (Physics.Raycast(player.position, Vector3.down, out RaycastHit hit, 1.1f))
+        {
+            if (hit.collider.CompareTag("Floor"))
+            {
+                safePosition = player.position;
+            }
+        }
+    }
+
+    public void CheckRevive(DeathType type)
+    {
+        if (reviveChances > 0)
+        {
+            Time.timeScale = 0f;
+
+            isReviveActive = true;
+            reviveTimer = 5f;
+
+            reviveMenu.gameObject.SetActive(true);
+
+            gameState = GameState.REVIVE;
+            deathType = type;
+
+            buyRevive.interactable = playerData.coins >= 20;
+
+            PauseAllAudio();
+        }
+        else
+        {
+            Time.timeScale = 0f;
+            deathType = type;
+
+            SetGameOver();
+        }
+    }
+
+    private void Revive()
+    {
+        buttonClickSfx.Play();
+
+        switch (deathType)
+        {
+            case DeathType.WATER_STUCK:
+                player.position = safePosition;
+                break;
+            case DeathType.SPIKE_HIT:
+                player.position = safePosition;
+                break;
+            case DeathType.ZERO_LIVES:
+                gameLife++;
+                break;
+        }
+
+        reviveChances--;
+        isReviveActive = false;
+        deathType = DeathType.NONE;
+        player.GetComponent<Rigidbody>().linearVelocity = Vector3.zero;
+
+        gameState = GameState.PLAYING;
+
+        reviveMenu.gameObject.SetActive(false);
+
+        UnpauseAllAudio();
+
+        Time.timeScale = 1f;
+    }
+
+    public void BuyRevive()
+    {
+        playerData.coins -= 20;
+
+        playerData.SaveData();
+
+        Revive();
+    }
+
+    public void WatchAdRevive()
+    {
+        isRevivedPaused = true;
+        toastManager.PauseToasts();
+
+        rewardedAdManager.ShowRewardedAd(() => { }, () =>
+        {
+            isRevivedPaused = false;
+
+            Revive();
+
+            toastManager.ResumeToasts();
+        }, () =>
+        {
+            isRevivedPaused = false;
+
+            toastManager.ResumeToasts();
+
+            OpenNoAdsPanel();
+        });
+    }
+
+    private void SetGameOver()
+    {
+        switch (deathType)
+        {
+            case DeathType.WATER_STUCK:
+                OnWaterHit();
+                break;
+            case DeathType.SPIKE_HIT:
+                OnSpikeHit();
+                break;
+            case DeathType.ZERO_LIVES:
+                OnLivesZero();
+                break;
+        }
+    }
+
+    private void OnWaterHit()
     {
         loseTxt.text = "WATER STUCK";
         Lose();
     }
 
-    public void OnSpikeHit()
+    private void OnSpikeHit()
     {
         loseTxt.text = "SPIKE HIT";
         Lose();
@@ -553,6 +855,12 @@ public class InfiniteManager : MonoBehaviour
     public void OnSurrender()
     {
         loseTxt.text = "SURRENDER";
+        Lose();
+    }
+
+    private void OnLivesZero()
+    {
+        loseTxt.text = "OUT OF LIVES";
         Lose();
     }
 
@@ -635,5 +943,37 @@ public class InfiniteManager : MonoBehaviour
         {
             deductionTimeSfx.UnPause();
         }
+    }
+
+    private IEnumerator SetPauseAfterAd()
+    {
+        yield return null; // Wait 1 frame so SDK finishes its reset
+        Time.timeScale = 0f;
+    }
+
+    private void OpenNoAdsPanel()
+    {
+        noAdsPanel.gameObject.SetActive(true);
+        noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
+    }
+
+    public void CloseNoAdsPanel()
+    {
+        noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", false);
+        StartCoroutine(DelayedPanelClose(noAdsPanel));
+    }
+
+    private IEnumerator DelayedPanelClose(Transform panel)
+    {
+        yield return new WaitForSecondsRealtime(0.2f);
+        panel.gameObject.SetActive(false);
+    }
+
+    private IEnumerator SwitchScene(string name)
+    {
+        crossfade.SetBool("isOpen", true);
+        yield return new WaitForSecondsRealtime(0.3f);
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(name);
     }
 }

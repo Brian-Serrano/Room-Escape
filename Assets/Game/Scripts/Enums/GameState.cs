@@ -2,5 +2,5 @@ using UnityEngine;
 
 public enum GameState
 {
-    PLAYING, PAUSE, LOSE, WIN
+    PLAYING, PAUSE, LOSE, WIN, REVIVE
 }

@@ -5,7 +5,7 @@ public class DoorController : MonoBehaviour
 {
     public Vector3 openOffset;
 
-    private bool isOpen = false;
+    [HideInInspector] public bool isOpen = false;
     private Vector3 closedPos;
     private Vector3 openPos;
 

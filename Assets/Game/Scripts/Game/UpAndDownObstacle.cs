@@ -20,12 +20,12 @@ public class UpAndDownObstacle : MonoBehaviour
 
         rb = GetComponent<Rigidbody>();
 
-        speed = Random.Range(3f, 5f);
+        speed = Random.Range(3f, 4f);
         pointOne = rb.position.y - 1.5f;
         pointTwo = rb.position.y + 1.5f;
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (rb.position.y >= pointTwo)
         {
@@ -38,11 +38,11 @@ public class UpAndDownObstacle : MonoBehaviour
 
         if (switchDirection)
         {
-            rb.MovePosition(rb.position + (speed * Time.deltaTime * Vector3.up));
+            rb.MovePosition(rb.position + (speed * Time.fixedDeltaTime * Vector3.up));
         }
         else
         {
-            rb.MovePosition(rb.position + (speed * Time.deltaTime * Vector3.down));
+            rb.MovePosition(rb.position + (speed * Time.fixedDeltaTime * Vector3.down));
         }
     }
 }
