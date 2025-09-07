@@ -8,7 +8,8 @@ using UnityEngine;
 public class PlayerData
 {
     // login info
-    public string playerToken;
+    public string playerAccessToken;
+    public string playerRefreshToken;
     public int playerId;
     public string playerName;
     public bool hasLoggedIn;
@@ -44,9 +45,11 @@ public class PlayerData
 
     public PlayerData()
     {
-        playerToken = "";
+        playerAccessToken = "";
+        playerRefreshToken = "";
         playerId = 0;
         playerName = "";
+        hasLoggedIn = false;
 
         level = 1;
         highScore = 0;
@@ -87,5 +90,35 @@ public class PlayerData
         string path = Path.Combine(Application.persistentDataPath, "player_data.re");
 
         return PersistentDataController.SaveData(this, path);
+    }
+
+    // needed this function to prevent modifying tokens that is use for accessing server
+    public void SetPlayerDataFromServer(PlayerData playerData)
+    {
+        level = playerData.level;
+        highScore = playerData.highScore;
+        coins = playerData.coins;
+        totalCoins = playerData.totalCoins;
+        totalQuestsCompleted = playerData.totalQuestsCompleted;
+        totalQuestsCompletedOneGame = playerData.totalQuestsCompletedOneGame;
+        totalJumps = playerData.totalJumps;
+        totalTime = playerData.totalTime;
+        totalAttempts = playerData.totalAttempts;
+        levelAttempts = playerData.levelAttempts;
+        levelProgress = playerData.levelProgress;
+        materialsOwned = playerData.materialsOwned;
+        materialsSelected = playerData.materialsSelected;
+
+        levelsCompletedQuestTotal = playerData.levelsCompletedQuestTotal;
+        levelsCompletedQuestProgress = playerData.levelsCompletedQuestProgress;
+        attemptsQuestTotal = playerData.attemptsQuestTotal;
+        attemptsQuestProgress = playerData.attemptsQuestProgress;
+        coinsCollectedQuestTotal = playerData.coinsCollectedQuestTotal;
+        coinsCollectedQuestProgress = playerData.coinsCollectedQuestProgress;
+        lastQuestLoadTime = "";
+
+        musicVolume = playerData.musicVolume;
+        sfxVolume = playerData.sfxVolume;
+        sensitivity = playerData.sensitivity;
     }
 }

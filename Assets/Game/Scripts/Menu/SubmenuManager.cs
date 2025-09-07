@@ -195,7 +195,8 @@ public class SubmenuManager : MonoBehaviour
 
                 client.GetAuthorizationRoutes().Login(request, response =>
                 {
-                    playerData.playerToken = response.token;
+                    playerData.playerAccessToken = response.accessToken;
+                    playerData.playerRefreshToken = response.refreshToken;
                     playerData.playerId = response.playerId;
                     playerData.playerName = loginUsernameTxt.text.Trim();
 
@@ -213,6 +214,9 @@ public class SubmenuManager : MonoBehaviour
                 }, error =>
                 {
                     toastManager.ShowToast(error.details.Truncate(60));
+
+                    Debug.Log(error.error);
+                    Debug.Log(error.details);
 
                     spinnerContainer.SetActive(false);
                 });
@@ -243,7 +247,8 @@ public class SubmenuManager : MonoBehaviour
 
                 client.GetAuthorizationRoutes().Signup(request, response =>
                 {
-                    playerData.playerToken = response.token;
+                    playerData.playerAccessToken = response.accessToken;
+                    playerData.playerRefreshToken = response.refreshToken;
                     playerData.playerId = response.playerId;
                     playerData.playerName = signupUsernameTxt.text.Trim();
 

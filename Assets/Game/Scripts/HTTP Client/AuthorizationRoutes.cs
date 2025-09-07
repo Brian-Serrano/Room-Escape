@@ -20,7 +20,7 @@ public class AuthorizationRoutes
         this.client = client;
     }
 
-    public void Login(LoginRequest requestData, Action<Token> responseCallback, Action<ErrorResponse> errorCallback)
+    public void Login(LoginRequest requestData, Action<TokensAndId> responseCallback, Action<ErrorResponse> errorCallback)
     {
         string url = client.baseUrl + "re_authorization_routes/log_in";
 
@@ -35,7 +35,7 @@ public class AuthorizationRoutes
 
             if (response.IsSuccessStatusCode)
             {
-                responseCallback?.Invoke(response.ReadAsJson<Token>());
+                responseCallback?.Invoke(response.ReadAsJson<TokensAndId>());
                 return;
             }
 
@@ -53,7 +53,7 @@ public class AuthorizationRoutes
         });
     }
 
-    public void Signup(SignupRequest requestData, Action<Token> responseCallback, Action<ErrorResponse> errorCallback)
+    public void Signup(SignupRequest requestData, Action<TokensAndId> responseCallback, Action<ErrorResponse> errorCallback)
     {
         string url = client.baseUrl + "re_authorization_routes/sign_up";
 
@@ -68,7 +68,40 @@ public class AuthorizationRoutes
 
             if (response.IsSuccessStatusCode)
             {
-                responseCallback?.Invoke(response.ReadAsJson<Token>());
+                responseCallback?.Invoke(response.ReadAsJson<TokensAndId>());
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (!response.HasContent)
+                {
+                    errorCallback?.Invoke(new ErrorResponse("Server unavailable", "Server not running."));
+                    return;
+                }
+
+                errorCallback?.Invoke(response.ReadAsJson<ErrorResponse>());
+                return;
+            }
+        });
+    }
+
+    public void Refresh(RefreshToken refreshToken, Action<Tokens> responseCallback, Action<ErrorResponse> errorCallback)
+    {
+        string url = client.baseUrl + "re_authorization_routes/refresh";
+
+        HttpRequestMessage message = new HttpRequestMessage
+        {
+            Uri = new Uri(url),
+            Method = HttpAction.Post,
+            Content = StringContent.FromObject(refreshToken)
+        };
+
+        client.client.Send(message, HttpCompletionOption.AllResponseContent, response => {
+
+            if (response.IsSuccessStatusCode)
+            {
+                responseCallback?.Invoke(response.ReadAsJson<Tokens>());
                 return;
             }
 

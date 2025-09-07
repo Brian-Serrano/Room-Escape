@@ -68,23 +68,51 @@ public class LeaderboardManager : MonoBehaviour
             leaderboardScrollView.SetActive(false);
             errorTxt.gameObject.SetActive(false);
 
-            LeaderboardRequest request = new LeaderboardRequest(playerData.totalCoins, playerData.level, playerData.highScore);
-
-            client.GetPlayerRoutes().SaveLeaderboardData(playerData.playerToken, request, response =>
+            if (JwtHelper.IsExpired(playerData.playerAccessToken))
             {
-                spinner.SetActive(false);
-                leaderboardScrollView.SetActive(true);
+                RefreshToken refreshToken = new RefreshToken(playerData.playerRefreshToken);
 
-                Add50LeaderboardEntries();
+                client.GetAuthorizationRoutes().Refresh(refreshToken, response =>
+                {
+                    playerData.playerAccessToken = response.accessToken;
+                    playerData.playerRefreshToken = response.refreshToken;
 
-                GetLeaderboardData();
-            }, error =>
+                    playerData.SaveData();
+
+                    Debug.Log("New access token issued");
+
+                    SaveLeaderboard();
+                }, error =>
+                {
+                    spinner.SetActive(false);
+                    errorTxt.gameObject.SetActive(true);
+
+                    errorTxt.text = error.details.Truncate(60);
+                });
+            }
+            else
             {
-                spinner.SetActive(false);
-                errorTxt.gameObject.SetActive(true);
+                SaveLeaderboard();
+            }
 
-                errorTxt.text = error.details.Truncate(60);
-            });
+            void SaveLeaderboard()
+            {
+                LeaderboardRequest request = new LeaderboardRequest(playerData.totalCoins, playerData.level, playerData.highScore);
+
+                client.GetPlayerRoutes().SaveLeaderboardData(playerData.playerAccessToken, request, response =>
+                {
+                    spinner.SetActive(false);
+                    leaderboardScrollView.SetActive(true);
+
+                    GetLeaderboardData();
+                }, error =>
+                {
+                    spinner.SetActive(false);
+                    errorTxt.gameObject.SetActive(true);
+
+                    errorTxt.text = error.details.Truncate(60);
+                });
+            }
         }
         else
         {
@@ -120,16 +148,16 @@ public class LeaderboardManager : MonoBehaviour
         }
     }
 
-    private void Add50LeaderboardEntries()
-    {
-        for (int i = 0; i < 50; i++)
-        {
-            Instantiate(leaderboardItemPrefab, leaderboardContainer);
-        }
-    }
-
     private void GetLeaderboardData()
     {
+        if (leaderboardContainer.childCount <= 0)
+        {
+            for (int i = 0; i < 50; i++)
+            {
+                Instantiate(leaderboardItemPrefab, leaderboardContainer);
+            }
+        }
+        
         string type = selectedTypeTab switch
         {
             TypeTab.LEVEL => "level",
@@ -203,19 +231,49 @@ public class LeaderboardManager : MonoBehaviour
             leaderboardScrollView.SetActive(false);
             errorTxt.gameObject.SetActive(false);
 
-            client.GetPlayerRoutes().GetLeaderboard(playerData.playerToken, $"?type={type}&around={around}", response =>
+            if (JwtHelper.IsExpired(playerData.playerAccessToken))
             {
-                spinner.SetActive(false);
-                leaderboardScrollView.SetActive(true);
+                RefreshToken refreshToken = new RefreshToken(playerData.playerRefreshToken);
 
-                data?.Invoke(response);
-            }, error =>
+                client.GetAuthorizationRoutes().Refresh(refreshToken, response =>
+                {
+                    playerData.playerAccessToken = response.accessToken;
+                    playerData.playerRefreshToken = response.refreshToken;
+
+                    playerData.SaveData();
+
+                    Debug.Log("New access token issued");
+
+                    GetLeaderboard();
+                }, error =>
+                {
+                    spinner.SetActive(false);
+                    errorTxt.gameObject.SetActive(true);
+
+                    errorTxt.text = error.details.Truncate(60);
+                });
+            }
+            else
             {
-                spinner.SetActive(false);
-                errorTxt.gameObject.SetActive(true);
+                GetLeaderboard();
+            }
 
-                errorTxt.text = error.details.Truncate(60);
-            });
+            void GetLeaderboard()
+            {
+                client.GetPlayerRoutes().GetLeaderboard(playerData.playerAccessToken, $"?type={type}&around={around}", response =>
+                {
+                    spinner.SetActive(false);
+                    leaderboardScrollView.SetActive(true);
+
+                    data?.Invoke(response);
+                }, error =>
+                {
+                    spinner.SetActive(false);
+                    errorTxt.gameObject.SetActive(true);
+
+                    errorTxt.text = error.details.Truncate(60);
+                });
+            }
         }
         else
         {

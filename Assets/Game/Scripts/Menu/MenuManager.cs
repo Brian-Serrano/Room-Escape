@@ -71,6 +71,7 @@ public class MenuManager : MonoBehaviour
     private ToastManager toastManager;
     private RoomEscapeHTTPClient client;
     private BannerAdManager bannerAdManager;
+    private IAPV5Manager iAPV5Manager;
 
     private List<int> levelsQuest = new List<int>() { 2, 4, 6 };
     private List<int> attemptsQuest = new List<int>() { 5, 10, 15 };
@@ -83,6 +84,7 @@ public class MenuManager : MonoBehaviour
         toastManager = GetComponent<ToastManager>();
         client = RoomEscapeHTTPClient.GetInstance();
         bannerAdManager = BannerAdManager.GetInstance();
+        iAPV5Manager = IAPV5Manager.GetInstance();
 
         coinsTxt.text = playerData.coins.ToString();
 
@@ -123,6 +125,8 @@ public class MenuManager : MonoBehaviour
                 }
             }
         }
+
+        Debug.Log(playerData.playerRefreshToken);
     }
 
     private void SetMaterials(IMaterialController[] matControllers)
@@ -398,7 +402,8 @@ public class MenuManager : MonoBehaviour
     {
         CloseConfirmPanel();
 
-        playerData.playerToken = "";
+        playerData.playerAccessToken = "";
+        playerData.playerRefreshToken = "";
         playerData.playerId = 0;
         playerData.playerName = "";
 
@@ -418,23 +423,55 @@ public class MenuManager : MonoBehaviour
             saveButton.interactable = false;
             loadButton.interactable = false;
 
-            client.GetPlayerRoutes().SavePlayerData(playerData.playerToken, response =>
+            if (JwtHelper.IsExpired(playerData.playerAccessToken))
             {
-                spinnerContainer.SetActive(false);
+                RefreshToken refreshToken = new RefreshToken(playerData.playerRefreshToken);
 
-                toastManager.ShowToast(response.message.Truncate(60));
+                client.GetAuthorizationRoutes().Refresh(refreshToken, response =>
+                {
+                    playerData.playerAccessToken = response.accessToken;
+                    playerData.playerRefreshToken = response.refreshToken;
 
-                saveButton.interactable = true;
-                loadButton.interactable = true;
-            }, error =>
+                    playerData.SaveData();
+
+                    Debug.Log("New access token issued");
+
+                    SavePlayerData();
+                }, error =>
+                {
+                    spinnerContainer.SetActive(false);
+
+                    toastManager.ShowToast(error.details.Truncate(60));
+
+                    saveButton.interactable = true;
+                    loadButton.interactable = true;
+                });
+            }
+            else
             {
-                spinnerContainer.SetActive(false);
+                SavePlayerData();
+            }
 
-                toastManager.ShowToast(error.details.Truncate(60));
+            void SavePlayerData()
+            {
+                client.GetPlayerRoutes().SavePlayerData(playerData.playerAccessToken, response =>
+                {
+                    spinnerContainer.SetActive(false);
 
-                saveButton.interactable = true;
-                loadButton.interactable = true;
-            }, progress => { });
+                    toastManager.ShowToast(response.message.Truncate(60));
+
+                    saveButton.interactable = true;
+                    loadButton.interactable = true;
+                }, error =>
+                {
+                    spinnerContainer.SetActive(false);
+
+                    toastManager.ShowToast(error.details.Truncate(60));
+
+                    saveButton.interactable = true;
+                    loadButton.interactable = true;
+                }, progress => { });
+            }
         }
         else
         {
@@ -453,36 +490,76 @@ public class MenuManager : MonoBehaviour
             saveButton.interactable = false;
             loadButton.interactable = false;
 
-            client.GetPlayerRoutes().LoadPlayerData(playerData.playerToken, response =>
+            if (JwtHelper.IsExpired(playerData.playerAccessToken))
             {
-                playerData = PlayerData.LoadData();
-                achievements = AchievementData.LoadData();
+                RefreshToken refreshToken = new RefreshToken(playerData.playerRefreshToken);
 
-                spinnerContainer.SetActive(false);
+                client.GetAuthorizationRoutes().Refresh(refreshToken, response =>
+                {
+                    playerData.playerAccessToken = response.accessToken;
+                    playerData.playerRefreshToken = response.refreshToken;
 
-                toastManager.ShowToast(response.message.Truncate(60));
+                    playerData.SaveData();
 
-                saveButton.interactable = true;
-                loadButton.interactable = true;
+                    Debug.Log("New access token issued");
 
-                coinsTxt.text = playerData.coins.ToString();
+                    LoadPlayerData();
+                }, error =>
+                {
+                    spinnerContainer.SetActive(false);
 
-                UpdateMusicVolume();
-                UpdateSfxVolume();
-            }, error =>
+                    toastManager.ShowToast(error.details.Truncate(60));
+
+                    saveButton.interactable = true;
+                    loadButton.interactable = true;
+                });
+            }
+            else
             {
-                spinnerContainer.SetActive(false);
+                LoadPlayerData();
+            }
 
-                toastManager.ShowToast(error.details.Truncate(60));
+            void LoadPlayerData()
+            {
+                client.GetPlayerRoutes().LoadPlayerData(playerData.playerAccessToken, response =>
+                {
+                    playerData.SetPlayerDataFromServer(PlayerData.LoadData());
 
-                saveButton.interactable = true;
-                loadButton.interactable = true;
-            }, progress => { });
+                    playerData.SaveData();
+
+                    achievements = AchievementData.LoadData();
+
+                    spinnerContainer.SetActive(false);
+
+                    toastManager.ShowToast(response.message.Truncate(60));
+
+                    saveButton.interactable = true;
+                    loadButton.interactable = true;
+
+                    coinsTxt.text = playerData.coins.ToString();
+
+                    UpdateMusicVolume();
+                    UpdateSfxVolume();
+                }, error =>
+                {
+                    spinnerContainer.SetActive(false);
+
+                    toastManager.ShowToast(error.details.Truncate(60));
+
+                    saveButton.interactable = true;
+                    loadButton.interactable = true;
+                }, progress => { });
+            }
         }
         else
         {
             toastManager.ShowToast("No Internet Connection");
         }
+    }
+
+    public void RestorePurchases()
+    {
+        iAPV5Manager.RestorePurchases();
     }
 
     public void ConfirmLogout()

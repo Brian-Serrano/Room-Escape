@@ -31,7 +31,7 @@ public static class AchievementManager
                     {
                         achievement.progress = 100f;
                     }
-                    else if (playerData.playerName.Length > 0 && playerData.playerId > 0 && playerData.playerToken.Length > 0)
+                    else if (playerData.playerName.Length > 0 && playerData.playerId > 0 && playerData.playerAccessToken.Length > 0)
                     {
                         achievement.progress = 100f;
                         playerData.hasLoggedIn = true;

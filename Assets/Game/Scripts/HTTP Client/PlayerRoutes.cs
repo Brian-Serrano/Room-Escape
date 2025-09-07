@@ -82,31 +82,37 @@ public class PlayerRoutes
         byte[] data = null;
 
         client.client.Send(message, HttpCompletionOption.StreamResponseContent, response => {
-
-            data ??= new byte[response.ContentLength];
-
-            response.ReadAsByteArray().CopyTo(data, response.TotalContentRead - response.ContentReadThisRound);
-
-            if (response.PercentageComplete == 100 && response.IsSuccessStatusCode)
+            try
             {
-                FileCompressor.ExtractFilesAndFolders(data, Application.persistentDataPath);
-                responseCallback?.Invoke(new SuccessMessage { message = "Your data has been successfully restored." });
-                return;
-            }
+                data ??= new byte[response.ContentLength];
 
-            if (!response.IsSuccessStatusCode)
-            {
-                if (!response.HasContent)
+                response.ReadAsByteArray().CopyTo(data, response.TotalContentRead - response.ContentReadThisRound);
+
+                if (response.PercentageComplete == 100 && response.IsSuccessStatusCode)
                 {
-                    errorCallback?.Invoke(new ErrorResponse("Server unavailable", "Server not running."));
+                    FileCompressor.ExtractFilesAndFolders(data, Application.persistentDataPath);
+                    responseCallback?.Invoke(new SuccessMessage { message = "Your data has been successfully restored." });
                     return;
                 }
 
-                errorCallback?.Invoke(response.ReadAsJson<ErrorResponse>());
-                return;
-            }
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (!response.HasContent)
+                    {
+                        errorCallback?.Invoke(new ErrorResponse("Server unavailable", "Server not running."));
+                        return;
+                    }
 
-            progressCallback?.Invoke(response.PercentageComplete);
+                    errorCallback?.Invoke(response.ReadAsJson<ErrorResponse>());
+                    return;
+                }
+
+                progressCallback?.Invoke(response.PercentageComplete);
+            }
+            catch (Exception e)
+            {
+                errorCallback?.Invoke(new ErrorResponse("Server error", $"Error: {e.Message}"));
+            }
         });
     }
 

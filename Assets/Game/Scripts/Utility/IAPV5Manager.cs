@@ -13,6 +13,7 @@ public class IAPV5Manager
     private StoreController _store;
     private readonly Dictionary<string, Product> _productsById = new();
     private Dictionary<string, Action<string>> _pendingGrants = new();
+    private Dictionary<string, Action> _failedGrants = new();
 
     public static IAPV5Manager GetInstance()
     {
@@ -71,7 +72,7 @@ public class IAPV5Manager
 
     // --------- UI entry points ---------
 
-    public void Buy(string productId, Action<string> grantEntitlement)
+    public void Buy(string productId, Action<string> grantEntitlement, Action failedGrant)
     {
         if (_store == null)
         {
@@ -80,6 +81,7 @@ public class IAPV5Manager
         }
 
         _pendingGrants[productId] = grantEntitlement;
+        _failedGrants[productId] = failedGrant;
         _store.PurchaseProduct(productId);
     }
 
@@ -132,6 +134,12 @@ public class IAPV5Manager
     private void OnPurchaseFailed(FailedOrder failure)
     {
         Debug.LogWarning($"[IAP] Purchase failed: reason={failure.FailureReason}");
+
+        foreach (var line in failure.CartOrdered.Items())
+        {
+            var productId = line.Product.definition.id;
+            _failedGrants[productId]?.Invoke();
+        }
     }
 
     private void OnPurchaseConfirmed(Order order)

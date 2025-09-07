@@ -122,10 +122,12 @@ public class ShopManager : MonoBehaviour
                                 itemBoughtSfx.Play();
                                 StartCoroutine(DelayedPanelClose(confirmPanel));
 
+                                int current = playerData.coins;
+
                                 playerData.coins -= texture.price;
                                 playerData.materialsOwned = playerData.materialsOwned.Remove(texture.index, 1).Insert(texture.index, "1");
 
-                                coinsTxt.text = playerData.coins.ToString();
+                                StartCoroutine(AnimationManager.AnimateCoinText(coinsTxt, current, playerData.coins));
 
                                 AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
 
@@ -151,6 +153,8 @@ public class ShopManager : MonoBehaviour
                         confirmPanelOkButton.onClick.RemoveAllListeners();
                         confirmPanelOkButton.onClick.AddListener(() =>
                         {
+                            confirmPanelOkButton.interactable = false;
+
                             iAPV5Manager.Buy(texture.id, (id) =>
                             {
                                 confirmPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", false);
@@ -165,6 +169,11 @@ public class ShopManager : MonoBehaviour
 
                                 instance.transform.GetChild(2).gameObject.SetActive(playerData.materialsOwned[texture.index] == '1');
                                 button.interactable = playerData.materialsOwned[texture.index] == '0';
+
+                                confirmPanelOkButton.interactable = true;
+                            }, () =>
+                            {
+                                confirmPanelOkButton.interactable = true;
                             });
                         });
                     }

@@ -668,6 +668,8 @@ public class InfiniteManager : MonoBehaviour
         {
             doubleCoinsButton.onClick.AddListener(() =>
             {
+                doubleCoinsButton.interactable = false;
+
                 toastManager.PauseToasts();
                 buttonClickSfx.Play();
 
@@ -688,6 +690,8 @@ public class InfiniteManager : MonoBehaviour
                     StartCoroutine(SetPauseAfterAd());
                 }, () =>
                 {
+                    doubleCoinsButton.interactable = true;
+
                     OpenNoAdsPanel();
 
                     toastManager.ResumeToasts();
@@ -804,11 +808,15 @@ public class InfiniteManager : MonoBehaviour
 
     public void WatchAdRevive()
     {
+        watchAdRevive.interactable = false;
+
         isRevivedPaused = true;
         toastManager.PauseToasts();
 
         rewardedAdManager.ShowRewardedAd(() => { }, () =>
         {
+            watchAdRevive.interactable = true;
+
             isRevivedPaused = false;
 
             Revive();
@@ -816,6 +824,8 @@ public class InfiniteManager : MonoBehaviour
             toastManager.ResumeToasts();
         }, () =>
         {
+            watchAdRevive.interactable = true;
+
             isRevivedPaused = false;
 
             toastManager.ResumeToasts();

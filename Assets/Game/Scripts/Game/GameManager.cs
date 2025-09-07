@@ -675,8 +675,11 @@ public class GameManager : MonoBehaviour
     {
         gameState = GameState.LOSE;
 
+#if UNITY_ANDROID || UNITY_IOS
+#else
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+#endif
 
         StopAllAudio();
 
@@ -790,11 +793,15 @@ public class GameManager : MonoBehaviour
 
     public void WatchAdRevive()
     {
+        watchAdRevive.interactable = false;
+
         isRevivedPaused = true;
         toastManager.PauseToasts();
 
         rewardedAdManager.ShowRewardedAd(() => { }, () =>
         {
+            watchAdRevive.interactable = true;
+
             isRevivedPaused = false;
 
             Revive();
@@ -802,6 +809,8 @@ public class GameManager : MonoBehaviour
             toastManager.ResumeToasts();
         }, () =>
         {
+            watchAdRevive.interactable = true;
+
             isRevivedPaused = false;
 
             toastManager.ResumeToasts();
@@ -860,8 +869,11 @@ public class GameManager : MonoBehaviour
     {
         gameState = GameState.WIN;
 
+#if UNITY_ANDROID || UNITY_IOS
+#else
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+#endif
 
         StopAllAudio();
 
@@ -896,6 +908,8 @@ public class GameManager : MonoBehaviour
         {
             doubleCoinsButton.onClick.AddListener(() =>
             {
+                doubleCoinsButton.interactable = false;
+
                 toastManager.PauseToasts();
                 buttonClickSfx.Play();
 
@@ -916,6 +930,8 @@ public class GameManager : MonoBehaviour
                     StartCoroutine(SetPauseAfterAd());
                 }, () =>
                 {
+                    doubleCoinsButton.interactable = true;
+
                     OpenNoAdsPanel();
 
                     toastManager.ResumeToasts();
