@@ -9,9 +9,9 @@ public class RewardedAdManager
     private RewardedAd rewardedAd;
 
 #if UNITY_ANDROID
-    private string adUnitId = "ca-app-pub-5542507601288937/1012632445";
+    private string adUnitId = "ca-app-pub-5542507601288937/8953988604";
 #elif UNITY_IOS
-    private string adUnitId = "ca-app-pub-5542507601288937/7791462083";
+    private string adUnitId = "ca-app-pub-5542507601288937/8479060472";
 #else
     private string adUnitId = "unexpected_platform";
 #endif

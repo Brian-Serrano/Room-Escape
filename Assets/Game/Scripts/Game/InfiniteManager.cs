@@ -70,11 +70,6 @@ public class InfiniteManager : MonoBehaviour
 
     [Header("Sprint (Double-Tap W)")]
     public float sprintDoubleClickTime = 0.3f;
-#if UNITY_ANDROID || UNITY_IOS
-#else
-    private float lastForwardPressTime = 0f;
-    private bool doubleClickStarted = false;
-#endif
     private bool isSprinting = false;
 
     [Header("Door Toggle Input")]
@@ -124,15 +119,6 @@ public class InfiniteManager : MonoBehaviour
         interstitialAdManager = InterstitialAdManager.GetInstance();
 
         mainCamera = player.GetChild(0).GetComponent<Camera>();
-
-#if UNITY_ANDROID || UNITY_IOS
-        mobileUIController.SetActive(true);
-#else
-        mobileUIController.SetActive(false);
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-#endif
 
         nums1 = new List<int>() { 5, 8, 11 };
         nums2 = new List<int>() { 14, 18, 22, 26 };
@@ -277,8 +263,7 @@ public class InfiniteManager : MonoBehaviour
 
         CheckSafePosition();
 
-#if UNITY_ANDROID || UNITY_IOS
-        float sensitivity = (playerData.sensitivity * 100) + 20;
+        float sensitivity = (playerData.sensitivity * 30) + 5;
 
         float mouseX = 0f;
         float mouseY = 0f;
@@ -299,12 +284,6 @@ public class InfiniteManager : MonoBehaviour
                 break;
             }
         }
-#else
-        float sensitivity = (playerData.sensitivity * 500) + 200;
-
-        float mouseX = Input.GetAxisRaw("Mouse X") * sensitivity * Time.deltaTime;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * sensitivity * Time.deltaTime;
-#endif
 
         player.transform.Rotate(Vector3.up * mouseX);
 
@@ -312,58 +291,15 @@ public class InfiniteManager : MonoBehaviour
         verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f);
         mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
 
-#if UNITY_ANDROID || UNITY_IOS
         float x = dragArea.Horizontal();
         float z = dragArea.Vertical();
 
         Vector3 forward = player.transform.forward * z;
         Vector3 right = player.transform.right * x;
         moveDir = forward + right;
-#else
-        float x = Input.GetAxisRaw("Horizontal");
-        float z = Input.GetAxisRaw("Vertical");
 
-        Vector3 forward = player.transform.forward * z;
-        Vector3 right = player.transform.right * x;
-        moveDir = (forward + right).normalized;
-#endif
-
-#if UNITY_ANDROID || UNITY_IOS
-#else
-        if (Input.GetKeyDown(KeyCode.W))
-        {
-            if (Time.time - lastForwardPressTime < sprintDoubleClickTime)
-                doubleClickStarted = true;
-
-            lastForwardPressTime = Time.time;
-        }
-
-        if (doubleClickStarted && Input.GetKey(KeyCode.W))
-        {
-            isSprinting = true;
-        }
-        else
-        {
-            isSprinting = false;
-        }
-
-        // Reset double click if too much time has passed
-        if (Time.time - lastForwardPressTime > sprintDoubleClickTime)
-            doubleClickStarted = false;
-
-
-        if (Input.GetKeyDown(KeyCode.Space) && GroundCheck())
-        {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            playerData.totalJumps++;
-            gameJumps++;
-            jumpSfx.Play();
-        };
-#endif
         if (gameState == GameState.PLAYING)
         {
-#if UNITY_ANDROID || UNITY_IOS
-            // Touch version (mobile)
             if (Input.touchCount > 0)
             {
                 foreach (Touch touch in Input.touches)
@@ -384,23 +320,6 @@ public class InfiniteManager : MonoBehaviour
                     }
                 }
             }
-#else
-            // Mouse version (for testing in editor)
-            if (Input.GetMouseButtonDown(0))
-            {
-                tapStartTime = Time.time;
-                tapStartPos = Input.mousePosition;
-            }
-
-            if (Input.GetMouseButtonUp(0))
-            {
-                if (Time.time - tapStartTime <= maxTapDuration &&
-                    Vector2.Distance((Vector2)Input.mousePosition, tapStartPos) <= maxTapMovement)
-                {
-                    ToggleDoor();
-                }
-            }
-#endif
         }
     }
 
@@ -411,7 +330,6 @@ public class InfiniteManager : MonoBehaviour
         rb.MovePosition(targetPos);
     }
 
-#if UNITY_ANDROID || UNITY_IOS
     public void OnSprintDown() => isSprinting = true;
 
     public void OnSprintUp() => isSprinting = false;
@@ -426,7 +344,6 @@ public class InfiniteManager : MonoBehaviour
             jumpSfx.Play();
         }
     }
-#endif
 
     private void ToggleDoor()
     {
@@ -649,9 +566,6 @@ public class InfiniteManager : MonoBehaviour
     private void Lose()
     {
         gameState = GameState.LOSE;
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
 
         StopAllAudio();
 
@@ -981,6 +895,7 @@ public class InfiniteManager : MonoBehaviour
 
     private IEnumerator SwitchScene(string name)
     {
+        crossfade.GetComponent<CanvasGroup>().blocksRaycasts = true;
         crossfade.SetBool("isOpen", true);
         yield return new WaitForSecondsRealtime(0.3f);
         Time.timeScale = 1f;

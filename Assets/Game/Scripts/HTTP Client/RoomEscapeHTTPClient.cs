@@ -6,7 +6,7 @@ public class RoomEscapeHTTPClient
     private static RoomEscapeHTTPClient instance;
 
     public HttpClient client;
-    public string baseUrl = "http://127.0.0.1:5000/";
+    public string baseUrl = "https://briser-games-server.onrender.com/";
 
     public static RoomEscapeHTTPClient GetInstance()
     {

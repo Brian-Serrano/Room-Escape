@@ -7,9 +7,9 @@ public class BannerAdManager
     private BannerView bannerView;
 
 #if UNITY_ANDROID
-    private string adUnitId = "ca-app-pub-5542507601288937/9949069179";
+    private string adUnitId = "ca-app-pub-5542507601288937/1267070273";
 #elif UNITY_IOS
-    private string adUnitId = "ca-app-pub-5542507601288937/5106407231";
+    private string adUnitId = "ca-app-pub-5542507601288937/5014743592";
 #else
     private string adUnitId = "unexpected_platform";
 #endif

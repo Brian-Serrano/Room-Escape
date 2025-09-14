@@ -8,9 +8,9 @@ public class InterstitialAdManager
     private InterstitialAd interstitialAd;
 
 #if UNITY_ANDROID
-    private string adUnitId = "ca-app-pub-5542507601288937/7578040799";
+    private string adUnitId = "ca-app-pub-5542507601288937/7505175564";
 #elif UNITY_IOS
-    private string adUnitId = "ca-app-pub-5542507601288937/2104839372";
+    private string adUnitId = "ca-app-pub-5542507601288937/1235280687";
 #else
     private string adUnitId = "unexpected_platform";
 #endif

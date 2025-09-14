@@ -48,6 +48,7 @@ public class LeaderboardManager : MonoBehaviour
     private RoomEscapeHTTPClient client;
     private TypeTab selectedTypeTab = TypeTab.LEVEL;
     private AroundTab selectedAroundTab = AroundTab.TOP_50;
+    private bool leaderboardSaved = false;
 
     private Dictionary<(TypeTab, AroundTab), LeaderboardResponse> cache;
 
@@ -87,31 +88,15 @@ public class LeaderboardManager : MonoBehaviour
                     spinner.SetActive(false);
                     errorTxt.gameObject.SetActive(true);
 
+                    Debug.Log(error.error);
+                    Debug.Log(error.details);
+
                     errorTxt.text = error.details.Truncate(60);
                 });
             }
             else
             {
                 SaveLeaderboard();
-            }
-
-            void SaveLeaderboard()
-            {
-                LeaderboardRequest request = new LeaderboardRequest(playerData.totalCoins, playerData.level, playerData.highScore);
-
-                client.GetPlayerRoutes().SaveLeaderboardData(playerData.playerAccessToken, request, response =>
-                {
-                    spinner.SetActive(false);
-                    leaderboardScrollView.SetActive(true);
-
-                    GetLeaderboardData();
-                }, error =>
-                {
-                    spinner.SetActive(false);
-                    errorTxt.gameObject.SetActive(true);
-
-                    errorTxt.text = error.details.Truncate(60);
-                });
             }
         }
         else
@@ -186,9 +171,7 @@ public class LeaderboardManager : MonoBehaviour
 
     private void UpdateLeaderboardEntry(LeaderboardResponse leaderboard)
     {
-        int count = Mathf.Min(leaderboardContainer.childCount, leaderboard.leaderboard.Count);
-
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < leaderboardContainer.childCount; i++)
         {
             Transform row = leaderboardContainer.GetChild(i);
 
@@ -196,17 +179,32 @@ public class LeaderboardManager : MonoBehaviour
             TMP_Text playerNameTxt = row.GetChild(1).GetComponent<TMP_Text>();
             TMP_Text amountTxt = row.GetChild(2).GetComponent<TMP_Text>();
 
-            if (leaderboard.leaderboard[i].playerId == playerData.playerId)
+            if (leaderboard.leaderboard.Count > i)
             {
-                row.GetComponent<Image>().color = gray;
+                if (leaderboard.leaderboard[i].playerId == playerData.playerId)
+                {
+                    row.GetComponent<Image>().color = gray;
 
-                rankTxt.fontStyle = FontStyles.Bold;
-                playerNameTxt.fontStyle = FontStyles.Bold;
-                amountTxt.fontStyle = FontStyles.Bold;
+                    rankTxt.fontStyle = FontStyles.Bold;
+                    playerNameTxt.fontStyle = FontStyles.Bold;
+                    amountTxt.fontStyle = FontStyles.Bold;
 
-                rankTxt.text = leaderboard.leaderboard[i].rank.ToString();
-                playerNameTxt.text = leaderboard.leaderboard[i].playerName;
-                amountTxt.text = leaderboard.leaderboard[i].amount.ToString();
+                    rankTxt.text = leaderboard.leaderboard[i].rank.ToString();
+                    playerNameTxt.text = leaderboard.leaderboard[i].playerName;
+                    amountTxt.text = leaderboard.leaderboard[i].amount.ToString();
+                }
+                else
+                {
+                    row.GetComponent<Image>().color = Color.white;
+
+                    rankTxt.fontStyle = FontStyles.Normal;
+                    playerNameTxt.fontStyle = FontStyles.Normal;
+                    amountTxt.fontStyle = FontStyles.Normal;
+
+                    rankTxt.text = leaderboard.leaderboard[i].rank.ToString();
+                    playerNameTxt.text = leaderboard.leaderboard[i].playerName;
+                    amountTxt.text = leaderboard.leaderboard[i].amount.ToString();
+                }
             }
             else
             {
@@ -216,11 +214,31 @@ public class LeaderboardManager : MonoBehaviour
                 playerNameTxt.fontStyle = FontStyles.Normal;
                 amountTxt.fontStyle = FontStyles.Normal;
 
-                rankTxt.text = leaderboard.leaderboard[i].rank.ToString();
-                playerNameTxt.text = leaderboard.leaderboard[i].playerName;
-                amountTxt.text = leaderboard.leaderboard[i].amount.ToString();
+                rankTxt.text = "";
+                playerNameTxt.text = "";
+                amountTxt.text = "";
             }
         }
+    }
+
+    private void SaveLeaderboard()
+    {
+        LeaderboardRequest request = new LeaderboardRequest(playerData.totalCoins, playerData.level, playerData.highScore);
+
+        client.GetPlayerRoutes().SaveLeaderboardData(playerData.playerAccessToken, request, response =>
+        {
+            spinner.SetActive(false);
+            leaderboardScrollView.SetActive(true);
+            leaderboardSaved = true;
+
+            GetLeaderboardData();
+        }, error =>
+        {
+            spinner.SetActive(false);
+            errorTxt.gameObject.SetActive(true);
+
+            errorTxt.text = error.details.Truncate(60);
+        });
     }
 
     private void GetLeaderboardDataFromServer(string type, string around, Action<LeaderboardResponse> data)
@@ -285,13 +303,25 @@ public class LeaderboardManager : MonoBehaviour
         }
     }
 
+    private void CheckLeaderboard()
+    {
+        if (leaderboardSaved)
+        {
+            GetLeaderboardData();
+        }
+        else
+        {
+            SaveLeaderboard();
+        }
+    }
+
     public void SwitchToCoinTab()
     {
         selectedTypeTab = TypeTab.TOTAL_COINS;
         buttonClickSfx.Play();
 
         SelectTypeTab();
-        GetLeaderboardData();
+        CheckLeaderboard();
     }
 
     public void SwitchToLevelTab()
@@ -300,7 +330,7 @@ public class LeaderboardManager : MonoBehaviour
         buttonClickSfx.Play();
 
         SelectTypeTab();
-        GetLeaderboardData();
+        CheckLeaderboard();
     }
 
     public void SwitchToHighScoreTab()
@@ -309,7 +339,7 @@ public class LeaderboardManager : MonoBehaviour
         buttonClickSfx.Play();
 
         SelectTypeTab();
-        GetLeaderboardData();
+        CheckLeaderboard();
     }
 
     public void SwitchToTop50Tab()
@@ -318,7 +348,7 @@ public class LeaderboardManager : MonoBehaviour
         buttonClickSfx.Play();
 
         SelectAroundTab();
-        GetLeaderboardData();
+        CheckLeaderboard();
     }
 
     public void SwitchToYourPositionTab()
@@ -327,7 +357,7 @@ public class LeaderboardManager : MonoBehaviour
         buttonClickSfx.Play();
 
         SelectAroundTab();
-        GetLeaderboardData();
+        CheckLeaderboard();
     }
 
     private void SelectTypeTab()
@@ -375,6 +405,7 @@ public class LeaderboardManager : MonoBehaviour
 
     private IEnumerator SwitchScene(string name)
     {
+        crossfade.GetComponent<CanvasGroup>().blocksRaycasts = true;
         crossfade.SetBool("isOpen", true);
         yield return new WaitForSecondsRealtime(0.3f);
         SceneManager.LoadScene(name);

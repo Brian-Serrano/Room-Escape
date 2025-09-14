@@ -77,6 +77,7 @@ public class PlayManager : MonoBehaviour
 
     private IEnumerator SwitchScene(string name)
     {
+        crossfade.GetComponent<CanvasGroup>().blocksRaycasts = true;
         crossfade.SetBool("isOpen", true);
         yield return new WaitForSecondsRealtime(0.3f);
         SceneManager.LoadScene(name);

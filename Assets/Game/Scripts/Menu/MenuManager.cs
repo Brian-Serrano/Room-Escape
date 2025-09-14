@@ -328,14 +328,8 @@ public class MenuManager : MonoBehaviour
         buttonClickSfx.Play();
         helpPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
 
-#if UNITY_ANDROID || UNITY_IOS
         helpText.text = "Drag the joystick to move player.\r\nPress the arrow button on the right to jump.\r\nHold the circle button on the right to sprint.\r\nTo open door, get the player close to the switch, aim at it, and press the left mouse button.\r\nThe bar at the top shows your progress throughout the level.\r\nThe number below the bar shows the time remaining to complete the level.\r\nAvoid touching the spikes.\r\nThere is a light between two doors. The light on the door should be green, otherwise there will be a deduction of 10 seconds from the time in classic mode or deduction of score and life decrease in infinite mode.\r\nPress the surrender if wanted to end the level.";
         helpTextParent.sizeDelta = new Vector2(helpTextParent.sizeDelta.x, 450);
-#else
-        helpText.text = "Hold the W key to move forward.\r\nHold the S key to move backward.\r\nHold the A key to move left.\r\nHold the D key to move right.\r\nPress the space key to jump.\r\nDouble tap the forward key to sprint.\r\nTo open door, get the player close to the switch, aim at it, and press the left mouse button.\r\nThe bar at the top shows your progress throughout the level.\r\nThe number below the bar shows the time remaining to complete the level.\r\nAvoid touching the spikes.\r\nThere is a light between two doors. The light on the door should be green, otherwise there will be a deduction of 10 seconds from the time in classic mode or deduction of score and life decrease in infinite mode.\r\nPress the surrender if wanted to end the level.";
-        helpTextParent.sizeDelta = new Vector2(helpTextParent.sizeDelta.x, 530);
-#endif
-
     }
 
     public void CloseHelpPanel()
@@ -654,6 +648,7 @@ public class MenuManager : MonoBehaviour
 
     private IEnumerator SwitchScene(string name)
     {
+        crossfade.GetComponent<CanvasGroup>().blocksRaycasts = true;
         crossfade.SetBool("isOpen", true);
         yield return new WaitForSecondsRealtime(0.3f);
         SceneManager.LoadScene(name);

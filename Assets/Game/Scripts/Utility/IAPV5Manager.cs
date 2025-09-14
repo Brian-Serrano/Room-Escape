@@ -197,18 +197,4 @@ public class IAPV5Manager
 
         return provider;
     }
-
-    private void OnDestroy()
-    {
-        if (_store == null) return;
-
-        _store.OnProductsFetched -= OnProductsFetched;
-        _store.OnPurchasePending -= OnPurchasePending;
-        _store.OnPurchaseFailed -= OnPurchaseFailed;
-        _store.OnPurchaseConfirmed -= OnPurchaseConfirmed;
-        _store.OnPurchaseDeferred -= OnPurchaseDeferred;
-        _store.OnPurchasesFetched -= OnPurchasesFetched;
-        _store.OnPurchasesFetchFailed -= OnPurchasesFetchFailed;
-        _store.OnStoreDisconnected -= OnStoreDisconnected;
-    }
 }
