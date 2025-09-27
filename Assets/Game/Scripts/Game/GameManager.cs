@@ -1,8 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.EventSystems;
@@ -17,7 +17,7 @@ public class GameManager : MonoBehaviour
     public LayerMask doorSwitchLayerMask;
     public ConfigHandler configHandler;
     public GameObject mobileUIController;
-    public DragArea dragArea;
+    public Joystick joystick;
     public Animator crossfade;
 
     private Rigidbody rb;
@@ -35,6 +35,7 @@ public class GameManager : MonoBehaviour
     public Slider pauseProgressBar;
     public TMP_Text gameTimerTxt;
     public TMP_Text deductionTxt;
+    public Button closeAdLoadFailedButton;
 
     public TMP_Text loseAttemptsTxt;
     public TMP_Text loseJumpsTxt;
@@ -104,6 +105,7 @@ public class GameManager : MonoBehaviour
     private DeathType deathType;
     private RewardedAdManager rewardedAdManager;
     private InterstitialAdManager interstitialAdManager;
+    private Action closeAdLoadFailedPanelAction;
 
     private List<int> levelsQuest = new List<int>() { 2, 4, 6 };
     private List<int> attemptsQuest = new List<int>() { 5, 10, 15 };
@@ -130,29 +132,29 @@ public class GameManager : MonoBehaviour
 
         List<List<float>> obstaclesToCreate = RoomEscapeUtils.GetObstacleSpawnPoints();
 
-        Random.InitState(playerData.level);
+        UnityEngine.Random.InitState(playerData.level);
 
         int randomNumber = 0;
 
         if (playerData.level >= 1 && playerData.level <= 5)
         {
-            randomNumber = Random.Range(2, 4);
+            randomNumber = UnityEngine.Random.Range(2, 4);
         }
         else if (playerData.level >= 6 && playerData.level <= 20)
         {
-            randomNumber = Random.Range(3, 5);
+            randomNumber = UnityEngine.Random.Range(3, 5);
         }
         else if (playerData.level >= 21 && playerData.level <= 50)
         {
-            randomNumber = Random.Range(4, 6);
+            randomNumber = UnityEngine.Random.Range(4, 6);
         }
         else if (playerData.level >= 51 && playerData.level <= 500)
         {
-            randomNumber = Random.Range(5, 10);
+            randomNumber = UnityEngine.Random.Range(5, 10);
         }
         else if (playerData.level >= 501)
         {
-            randomNumber = Random.Range(10, 15);
+            randomNumber = UnityEngine.Random.Range(10, 15);
         }
 
         gameTotalTime = randomNumber * 20;
@@ -176,7 +178,7 @@ public class GameManager : MonoBehaviour
             GameObject roomSlice = Instantiate(configHandler.structures[7], new Vector3(0, 6, 0) + spawnOffset, Quaternion.identity, obstaclesContainer);
             SetMaterials(roomSlice.GetComponentsInChildren<IMaterialController>());
 
-            List<int> randomObstacles = obstacles[Random.Range(0, obstacles.Count)];
+            List<int> randomObstacles = obstacles[UnityEngine.Random.Range(0, obstacles.Count)];
 
             foreach (int obstacle in randomObstacles)
             {
@@ -211,7 +213,7 @@ public class GameManager : MonoBehaviour
         {
             if (noAdsPanel.gameObject.activeSelf)
             {
-                CloseNoAdsPanel();
+                closeAdLoadFailedPanelAction?.Invoke();
             }
             else
             {
@@ -323,8 +325,8 @@ public class GameManager : MonoBehaviour
         verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f);
         mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
 
-        float x = dragArea.Horizontal();
-        float z = dragArea.Vertical();
+        float x = joystick.Horizontal;
+        float z = joystick.Vertical;
 
         Vector3 forward = player.transform.forward * z;
         Vector3 right = player.transform.right * x;
@@ -608,7 +610,7 @@ public class GameManager : MonoBehaviour
 
         playerData.totalQuestsCompletedOneGame = Mathf.Max(playerData.totalQuestsCompletedOneGame, questsCompletedInOneGame);
 
-        AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
+        AchievementManager.CheckAchievements(playerData, toastManager);
 
         playerData.SaveData();
     }
@@ -747,11 +749,14 @@ public class GameManager : MonoBehaviour
         {
             watchAdRevive.interactable = true;
 
-            isRevivedPaused = false;
-
             toastManager.ResumeToasts();
 
-            OpenNoAdsPanel();
+            OpenNoAdsPanel(() =>
+            {
+                isRevivedPaused = false;
+            });
+
+            StartCoroutine(SetPauseAfterAd());
         });
     }
 
@@ -828,7 +833,7 @@ public class GameManager : MonoBehaviour
 
         playerData.totalQuestsCompletedOneGame = Mathf.Max(playerData.totalQuestsCompletedOneGame, questsCompletedInOneGame);
 
-        AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
+        AchievementManager.CheckAchievements(playerData, toastManager);
 
         playerData.SaveData();
 
@@ -862,7 +867,7 @@ public class GameManager : MonoBehaviour
                 {
                     doubleCoinsButton.interactable = true;
 
-                    OpenNoAdsPanel();
+                    OpenNoAdsPanel(() => { });
 
                     toastManager.ResumeToasts();
 
@@ -971,16 +976,24 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    private void OpenNoAdsPanel()
+    private void OpenNoAdsPanel(Action onPanelCloseExtraAction)
     {
         noAdsPanel.gameObject.SetActive(true);
         noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
-    }
 
-    public void CloseNoAdsPanel()
-    {
-        noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", false);
-        StartCoroutine(DelayedPanelClose(noAdsPanel));
+        void PanelCloseAction()
+        {
+            onPanelCloseExtraAction?.Invoke();
+
+            noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", false);
+            buttonClickSfx.Play();
+            StartCoroutine(DelayedPanelClose(noAdsPanel));
+        }
+
+        closeAdLoadFailedPanelAction = PanelCloseAction;
+
+        closeAdLoadFailedButton.onClick.RemoveAllListeners();
+        closeAdLoadFailedButton.onClick.AddListener(() => PanelCloseAction());
     }
 
     private IEnumerator DelayedPanelClose(Transform panel)

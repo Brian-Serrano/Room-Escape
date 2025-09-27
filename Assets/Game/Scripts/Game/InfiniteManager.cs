@@ -1,8 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -14,7 +16,7 @@ public class InfiniteManager : MonoBehaviour
     public LayerMask doorSwitchLayerMask;
     public ConfigHandler configHandler;
     public GameObject mobileUIController;
-    public DragArea dragArea;
+    public Joystick joystick;
     public Animator crossfade;
 
     private Rigidbody rb;
@@ -27,6 +29,7 @@ public class InfiniteManager : MonoBehaviour
     public Slider sfxSlider;
     public Slider sensitivitySlider;
     public TMP_Text deductionTxt;
+    public Button closeAdLoadFailedButton;
 
     public TMP_Text loseCoinsTxt;
     public TMP_Text loseJumpsTxt;
@@ -100,6 +103,7 @@ public class InfiniteManager : MonoBehaviour
     private List<int> nums1;
     private List<int> nums2;
     private List<List<float>> obstaclesToCreate;
+    private Action closeAdLoadFailedPanelAction;
 
     private List<int> levelsQuest = new List<int>() { 2, 4, 6 };
     private List<int> attemptsQuest = new List<int>() { 5, 10, 15 };
@@ -162,7 +166,7 @@ public class InfiniteManager : MonoBehaviour
         GameObject roomSlice = Instantiate(configHandler.structures[7], new Vector3(0, 6, 0) + spawnOffset, Quaternion.identity, obstacleGroup.transform);
         SetMaterials(roomSlice.GetComponentsInChildren<IMaterialController>());
 
-        List<int> randomObstacles = obstacles[Random.Range(0, obstacles.Count)];
+        List<int> randomObstacles = obstacles[UnityEngine.Random.Range(0, obstacles.Count)];
 
         foreach (int obstacle in randomObstacles)
         {
@@ -196,7 +200,7 @@ public class InfiniteManager : MonoBehaviour
         {
             if (noAdsPanel.gameObject.activeSelf)
             {
-                CloseNoAdsPanel();
+                closeAdLoadFailedPanelAction?.Invoke();
             }
             else
             {
@@ -251,6 +255,29 @@ public class InfiniteManager : MonoBehaviour
 
             reviveSlider.value = reviveTimer / 5f;
 
+            for (int i = 0; i < Input.touchCount; i++)
+            {
+                Touch touch = Input.GetTouch(i);
+
+                if (touch.phase == TouchPhase.Began)
+                {
+                    if (EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+                    {
+                        PointerEventData pointerData = new PointerEventData(EventSystem.current);
+                        pointerData.position = touch.position;
+
+                        List<RaycastResult> results = new List<RaycastResult>();
+                        EventSystem.current.RaycastAll(pointerData, results);
+
+                        bool clickedButton = results.Exists(r => r.gameObject.GetComponent<Button>() != null);
+
+                        if (clickedButton) continue;
+                    }
+
+                    reviveTimer -= 2f;
+                }
+            }
+
             if (reviveTimer <= 0f)
             {
                 reviveMenu.gameObject.SetActive(false);
@@ -272,7 +299,7 @@ public class InfiniteManager : MonoBehaviour
         {
             Touch touch = Input.GetTouch(i);
 
-            if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+            if (EventSystem.current.IsPointerOverGameObject(touch.fingerId))
                 continue;
 
             if (touch.phase == TouchPhase.Moved)
@@ -291,8 +318,8 @@ public class InfiniteManager : MonoBehaviour
         verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f);
         mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
 
-        float x = dragArea.Horizontal();
-        float z = dragArea.Vertical();
+        float x = joystick.Horizontal;
+        float z = joystick.Vertical;
 
         Vector3 forward = player.transform.forward * z;
         Vector3 right = player.transform.right * x;
@@ -558,7 +585,7 @@ public class InfiniteManager : MonoBehaviour
 
         playerData.totalQuestsCompletedOneGame = Mathf.Max(playerData.totalQuestsCompletedOneGame, questsCompletedInOneGame);
 
-        AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
+        AchievementManager.CheckAchievements(playerData, toastManager);
 
         playerData.SaveData();
     }
@@ -606,7 +633,7 @@ public class InfiniteManager : MonoBehaviour
                 {
                     doubleCoinsButton.interactable = true;
 
-                    OpenNoAdsPanel();
+                    OpenNoAdsPanel(() => { });
 
                     toastManager.ResumeToasts();
 
@@ -740,11 +767,14 @@ public class InfiniteManager : MonoBehaviour
         {
             watchAdRevive.interactable = true;
 
-            isRevivedPaused = false;
-
             toastManager.ResumeToasts();
 
-            OpenNoAdsPanel();
+            OpenNoAdsPanel(() =>
+            {
+                isRevivedPaused = false;
+            });
+
+            StartCoroutine(SetPauseAfterAd());
         });
     }
 
@@ -875,16 +905,24 @@ public class InfiniteManager : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    private void OpenNoAdsPanel()
+    private void OpenNoAdsPanel(Action onPanelCloseExtraAction)
     {
         noAdsPanel.gameObject.SetActive(true);
         noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
-    }
 
-    public void CloseNoAdsPanel()
-    {
-        noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", false);
-        StartCoroutine(DelayedPanelClose(noAdsPanel));
+        void PanelCloseAction()
+        {
+            onPanelCloseExtraAction?.Invoke();
+
+            noAdsPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", false);
+            buttonClickSfx.Play();
+            StartCoroutine(DelayedPanelClose(noAdsPanel));
+        }
+
+        closeAdLoadFailedPanelAction = PanelCloseAction;
+
+        closeAdLoadFailedButton.onClick.RemoveAllListeners();
+        closeAdLoadFailedButton.onClick.AddListener(() => PanelCloseAction());
     }
 
     private IEnumerator DelayedPanelClose(Transform panel)

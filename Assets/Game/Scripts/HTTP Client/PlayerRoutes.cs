@@ -23,14 +23,11 @@ public class PlayerRoutes
     public void SavePlayerData(string token, Action<SuccessMessage> responseCallback, Action<ErrorResponse> errorCallback, Action<int> progressCallback)
     {
         string url = client.baseUrl + "re_player_routes/save_player_data";
-        string playerDataPath = Path.Combine(Application.persistentDataPath, "player_data.re");
-        string achievementDataPath = Path.Combine(Application.persistentDataPath, "achievement.re");
-
-        byte[] compressedFile = FileCompressor.CompressFilesAndFolders(playerDataPath, achievementDataPath);
+        byte[] compressedFile = PlayerData.ReadData();
 
         MultipartFormDataContent multipartFormData = new MultipartFormDataContent
         {
-            { new ByteArrayContent(compressedFile, "application/zip"), "data", "player_data.playerdata" }
+            { new ByteArrayContent(compressedFile, "application/octet-stream"), "data", "player_data.playerdata" }
         };
 
         HttpRequestMessage message = new HttpRequestMessage
@@ -90,7 +87,7 @@ public class PlayerRoutes
 
                 if (response.PercentageComplete == 100 && response.IsSuccessStatusCode)
                 {
-                    FileCompressor.ExtractFilesAndFolders(data, Application.persistentDataPath);
+                    PlayerData.SaveData(data);
                     responseCallback?.Invoke(new SuccessMessage { message = "Your data has been successfully restored." });
                     return;
                 }

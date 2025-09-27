@@ -65,8 +65,6 @@ public class MenuManager : MonoBehaviour
 
     [Header("Audio Source")]
     public AudioSource buttonClickSfx;
-
-    private AchievementData achievements;
     private PlayerData playerData;
     private ToastManager toastManager;
     private RoomEscapeHTTPClient client;
@@ -79,7 +77,6 @@ public class MenuManager : MonoBehaviour
 
     private void Awake()
     {
-        achievements = AchievementData.LoadData();
         playerData = PlayerData.LoadData();
         toastManager = GetComponent<ToastManager>();
         client = RoomEscapeHTTPClient.GetInstance();
@@ -125,8 +122,6 @@ public class MenuManager : MonoBehaviour
                 }
             }
         }
-
-        Debug.Log(playerData.playerRefreshToken);
     }
 
     private void SetMaterials(IMaterialController[] matControllers)
@@ -207,10 +202,14 @@ public class MenuManager : MonoBehaviour
 
     public void OpenAchievementsPanel()
     {
+        List<Achievement> achievements = AchievementManager.GetAchievementInfo();
+
         if (achievementsContainer.childCount == 0)
         {
-            foreach (Achievement achievement in achievements.achievements)
+            for (int i = 0; i < achievements.Count; i++)
             {
+                Achievement achievement = achievements[i];
+
                 GameObject instance = Instantiate(achievementItemPrefab, achievementsContainer);
                 Transform obj = instance.transform;
 
@@ -236,14 +235,14 @@ public class MenuManager : MonoBehaviour
                     texture.GetComponent<Image>().sprite = configHandler.sprites[achievement.quantityOrIdx];
                 }
 
-                UpdateAchievementProgress(obj, achievement);
+                UpdateAchievementProgress(obj, playerData.achievementProgress[i]);
             }
         }
         else
         {
             for (int i = 0; i < achievementsContainer.childCount; i++)
             {
-                UpdateAchievementProgress(achievementsContainer.GetChild(i), achievements.achievements[i]);
+                UpdateAchievementProgress(achievementsContainer.GetChild(i), playerData.achievementProgress[i]);
             }
         }
         
@@ -252,9 +251,9 @@ public class MenuManager : MonoBehaviour
         achievementPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
     }
 
-    private void UpdateAchievementProgress(Transform obj, Achievement achievement)
+    private void UpdateAchievementProgress(Transform obj, float progress)
     {
-        if (achievement.progress >= 100)
+        if (progress >= 100)
         {
             obj.GetChild(1).GetChild(0).gameObject.SetActive(false);
             obj.GetChild(1).GetChild(1).gameObject.SetActive(true);
@@ -266,7 +265,7 @@ public class MenuManager : MonoBehaviour
             progressText.gameObject.SetActive(true);
             obj.GetChild(1).GetChild(1).gameObject.SetActive(false);
 
-            progressText.GetComponent<TMP_Text>().text = Mathf.FloorToInt(achievement.progress) + "%";
+            progressText.GetComponent<TMP_Text>().text = Mathf.FloorToInt(progress) + "%";
         }
     }
 
@@ -284,7 +283,7 @@ public class MenuManager : MonoBehaviour
         statsCoinsTxt.text = playerData.coins.ToString();
         totalCoinsTxt.text = playerData.totalCoins.ToString();
         questsCompletedTxt.text = playerData.totalQuestsCompleted.ToString();
-        achievementsCompletedTxt.text = achievements.achievements.Count(x => x.progress >= 100f).ToString();
+        achievementsCompletedTxt.text = playerData.achievementProgress.Count(x => x >= 100f).ToString();
         totalJumpsTxt.text = playerData.totalJumps.ToString();
         totalTimeTxt.text = Mathf.RoundToInt(playerData.totalTime).ToString();
         totalAttemptsTxt.text = playerData.totalAttempts.ToString();
@@ -520,8 +519,6 @@ public class MenuManager : MonoBehaviour
                     playerData.SetPlayerDataFromServer(PlayerData.LoadData());
 
                     playerData.SaveData();
-
-                    achievements = AchievementData.LoadData();
 
                     spinnerContainer.SetActive(false);
 

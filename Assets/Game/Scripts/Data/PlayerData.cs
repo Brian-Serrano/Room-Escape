@@ -2,6 +2,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 [System.Serializable]
@@ -28,6 +29,7 @@ public class PlayerData
     public float levelProgress;
     public string materialsOwned;
     public List<int> materialsSelected;
+    public List<float> achievementProgress;
 
     // quest data
     public int levelsCompletedQuestTotal;
@@ -64,6 +66,7 @@ public class PlayerData
         levelProgress = 0f;
         materialsOwned = "10000100000000010000000101000000000000001000000000";
         materialsSelected = new List<int>() { 0, 23, 5, 15, 25, 40 }; // Block, Door, Floor, Spike, Wall, Wood
+        achievementProgress = Enumerable.Repeat(0f, 40).ToList();
 
         levelsCompletedQuestTotal = 0;
         levelsCompletedQuestProgress = -1;
@@ -78,18 +81,49 @@ public class PlayerData
         sensitivity = 0.5f;
     }
 
+    public static string GetPath()
+    {
+        return Path.Combine(Application.persistentDataPath, "player_data.re");
+    }
+
     public static PlayerData LoadData()
     {
-        string path = Path.Combine(Application.persistentDataPath, "player_data.re");
-
-        return PersistentDataController.LoadData<PlayerData>(path);
+        return PersistentDataController.LoadData<PlayerData>(GetPath());
     }
 
     public bool SaveData()
     {
-        string path = Path.Combine(Application.persistentDataPath, "player_data.re");
+        return PersistentDataController.SaveData(this, GetPath());
+    }
 
-        return PersistentDataController.SaveData(this, path);
+    public static bool SaveData(byte[] data)
+    {
+        try
+        {
+            File.WriteAllBytes(GetPath(), data);
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+            return false;
+        }
+    }
+
+    public static byte[] ReadData()
+    {
+        string path = GetPath();
+
+        if (File.Exists(path))
+        {
+            return File.ReadAllBytes(path);
+        }
+        else
+        {
+            Debug.LogError("File not found: " + path);
+            return null;
+        }
     }
 
     // needed this function to prevent modifying tokens that is use for accessing server
@@ -108,6 +142,7 @@ public class PlayerData
         levelProgress = playerData.levelProgress;
         materialsOwned = playerData.materialsOwned;
         materialsSelected = playerData.materialsSelected;
+        achievementProgress = playerData.achievementProgress;
 
         levelsCompletedQuestTotal = playerData.levelsCompletedQuestTotal;
         levelsCompletedQuestProgress = playerData.levelsCompletedQuestProgress;

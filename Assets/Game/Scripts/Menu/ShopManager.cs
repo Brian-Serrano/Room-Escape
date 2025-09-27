@@ -129,7 +129,7 @@ public class ShopManager : MonoBehaviour
 
                                 StartCoroutine(AnimationManager.AnimateCoinText(coinsTxt, current, playerData.coins));
 
-                                AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
+                                AchievementManager.CheckAchievements(playerData, toastManager);
 
                                 playerData.SaveData();
 
@@ -163,7 +163,7 @@ public class ShopManager : MonoBehaviour
 
                                 playerData.materialsOwned = playerData.materialsOwned.Remove(texture.index, 1).Insert(texture.index, "1");
 
-                                AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
+                                AchievementManager.CheckAchievements(playerData, toastManager);
 
                                 playerData.SaveData();
 

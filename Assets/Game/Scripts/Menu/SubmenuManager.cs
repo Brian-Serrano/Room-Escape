@@ -200,7 +200,7 @@ public class SubmenuManager : MonoBehaviour
                     playerData.playerId = response.playerId;
                     playerData.playerName = loginUsernameTxt.text.Trim();
 
-                    AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
+                    AchievementManager.CheckAchievements(playerData, toastManager);
 
                     playerData.SaveData();
 
@@ -252,7 +252,7 @@ public class SubmenuManager : MonoBehaviour
                     playerData.playerId = response.playerId;
                     playerData.playerName = signupUsernameTxt.text.Trim();
 
-                    AchievementManager.CheckAchievements(AchievementData.LoadData(), playerData, toastManager);
+                    AchievementManager.CheckAchievements(playerData, toastManager);
 
                     playerData.SaveData();
 
