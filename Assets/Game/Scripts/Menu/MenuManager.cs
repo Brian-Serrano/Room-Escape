@@ -65,10 +65,11 @@ public class MenuManager : MonoBehaviour
 
     [Header("Audio Source")]
     public AudioSource buttonClickSfx;
+
+
     private PlayerData playerData;
     private ToastManager toastManager;
     private RoomEscapeHTTPClient client;
-    private BannerAdManager bannerAdManager;
     private IAPV5Manager iAPV5Manager;
 
     private List<int> levelsQuest = new List<int>() { 2, 4, 6 };
@@ -80,8 +81,9 @@ public class MenuManager : MonoBehaviour
         playerData = PlayerData.LoadData();
         toastManager = GetComponent<ToastManager>();
         client = RoomEscapeHTTPClient.GetInstance();
-        bannerAdManager = BannerAdManager.GetInstance();
         iAPV5Manager = IAPV5Manager.GetInstance();
+
+        BannerAdManager.GetInstance().EnsureBannerVisible();
 
         coinsTxt.text = playerData.coins.ToString();
 

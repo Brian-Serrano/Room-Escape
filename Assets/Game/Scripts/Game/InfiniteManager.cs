@@ -1,3 +1,4 @@
+using PimDeWitte.UnityMainThreadDispatcher;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -121,6 +122,8 @@ public class InfiniteManager : MonoBehaviour
         gameState = GameState.PLAYING;
         rewardedAdManager = RewardedAdManager.GetInstance();
         interstitialAdManager = InterstitialAdManager.GetInstance();
+
+        BannerAdManager.GetInstance().EnsureBannerVisible();
 
         mainCamera = player.GetChild(0).GetComponent<Camera>();
 
@@ -616,28 +619,34 @@ public class InfiniteManager : MonoBehaviour
 
                 rewardedAdManager.ShowRewardedAd(() => { }, () =>
                 {
-                    playerData.coins += gameCoinsCollected;
-                    playerData.totalCoins += gameCoinsCollected;
+                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    {
+                        playerData.coins += gameCoinsCollected;
+                        playerData.totalCoins += gameCoinsCollected;
 
-                    loseCoinsTxt.text = (gameCoinsCollected * 2).ToString();
+                        loseCoinsTxt.text = (gameCoinsCollected * 2).ToString();
 
-                    playerData.SaveData();
+                        playerData.SaveData();
 
-                    doubleCoinsButton.interactable = false;
-                    doubleCoinsButton.GetComponentInChildren<TMP_Text>().text = "Claimed";
+                        doubleCoinsButton.interactable = false;
+                        doubleCoinsButton.GetComponentInChildren<TMP_Text>().text = "Claimed";
 
-                    toastManager.ResumeToasts();
+                        toastManager.ResumeToasts();
 
-                    StartCoroutine(SetPauseAfterAd());
+                        StartCoroutine(SetPauseAfterAd());
+                    });
                 }, () =>
                 {
-                    doubleCoinsButton.interactable = true;
+                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    {
+                        doubleCoinsButton.interactable = true;
 
-                    OpenNoAdsPanel(() => { });
+                        OpenNoAdsPanel(() => { });
 
-                    toastManager.ResumeToasts();
+                        toastManager.ResumeToasts();
 
-                    StartCoroutine(SetPauseAfterAd());
+                        StartCoroutine(SetPauseAfterAd());
+                    });
                 });
             });
         }
@@ -654,11 +663,14 @@ public class InfiniteManager : MonoBehaviour
 
             interstitialAdManager.ShowInterstitial(() =>
             {
-                gameOverPanel.gameObject.SetActive(true);
-                gameOverPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
-                loseSfx.Play();
-                StartCoroutine(SetPauseAfterAd());
-                toastManager.ResumeToasts();
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    gameOverPanel.gameObject.SetActive(true);
+                    gameOverPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
+                    loseSfx.Play();
+                    StartCoroutine(SetPauseAfterAd());
+                    toastManager.ResumeToasts();
+                });
             });
         }
         else
@@ -756,25 +768,31 @@ public class InfiniteManager : MonoBehaviour
 
         rewardedAdManager.ShowRewardedAd(() => { }, () =>
         {
-            watchAdRevive.interactable = true;
+            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            {
+                watchAdRevive.interactable = true;
 
-            isRevivedPaused = false;
+                isRevivedPaused = false;
 
-            Revive();
+                Revive();
 
-            toastManager.ResumeToasts();
+                toastManager.ResumeToasts();
+            });
         }, () =>
         {
-            watchAdRevive.interactable = true;
-
-            toastManager.ResumeToasts();
-
-            OpenNoAdsPanel(() =>
+            UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
-                isRevivedPaused = false;
-            });
+                watchAdRevive.interactable = true;
 
-            StartCoroutine(SetPauseAfterAd());
+                toastManager.ResumeToasts();
+
+                OpenNoAdsPanel(() =>
+                {
+                    isRevivedPaused = false;
+                });
+
+                StartCoroutine(SetPauseAfterAd());
+            });
         });
     }
 

@@ -30,6 +30,8 @@ public class PlayManager : MonoBehaviour
     {
         playerData = PlayerData.LoadData();
 
+        BannerAdManager.GetInstance().EnsureBannerVisible();
+
         levelTxt.text = playerData.level.ToString();
         levelProgressSlider.value = playerData.levelProgress;
         attemptsTxt.text = "ATTEMPTS: " + playerData.levelAttempts;

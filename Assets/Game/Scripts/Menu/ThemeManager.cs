@@ -39,6 +39,8 @@ public class ThemeManager : MonoBehaviour
     {
         playerData = PlayerData.LoadData();
 
+        BannerAdManager.GetInstance().EnsureBannerVisible();
+
         coinsTxt.text = playerData.coins.ToString();
 
         for (int i = 0; i < configHandler.sprites.Length; i++)

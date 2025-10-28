@@ -59,6 +59,8 @@ public class ShopManager : MonoBehaviour
         toastManager = GetComponent<ToastManager>();
         iAPV5Manager = IAPV5Manager.GetInstance();
 
+        BannerAdManager.GetInstance().EnsureBannerVisible();
+
         coinsTxt.text = playerData.coins.ToString();
 
         texturesInShop = new List<TextureInfo>

@@ -70,6 +70,8 @@ public class SubmenuManager : MonoBehaviour
         toastManager = GetComponent<ToastManager>();
         client = RoomEscapeHTTPClient.GetInstance();
 
+        BannerAdManager.GetInstance().EnsureBannerVisible();
+
         CheckLoginState();
     }
 

@@ -60,6 +60,8 @@ public class LeaderboardManager : MonoBehaviour
         client = RoomEscapeHTTPClient.GetInstance();
         cache = new Dictionary<(TypeTab, AroundTab), LeaderboardResponse>();
 
+        BannerAdManager.GetInstance().EnsureBannerVisible();
+
         SelectTypeTab();
         SelectAroundTab();
 
