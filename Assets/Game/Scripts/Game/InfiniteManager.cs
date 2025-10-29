@@ -1,4 +1,3 @@
-using PimDeWitte.UnityMainThreadDispatcher;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -105,6 +104,7 @@ public class InfiniteManager : MonoBehaviour
     private List<int> nums2;
     private List<List<float>> obstaclesToCreate;
     private Action closeAdLoadFailedPanelAction;
+    private MainThreadRun mainThreadRun;
 
     private List<int> levelsQuest = new List<int>() { 2, 4, 6 };
     private List<int> attemptsQuest = new List<int>() { 5, 10, 15 };
@@ -122,6 +122,7 @@ public class InfiniteManager : MonoBehaviour
         gameState = GameState.PLAYING;
         rewardedAdManager = RewardedAdManager.GetInstance();
         interstitialAdManager = InterstitialAdManager.GetInstance();
+        mainThreadRun = MainThreadRun.GetInstance();
 
         BannerAdManager.GetInstance().EnsureBannerVisible();
 
@@ -351,6 +352,8 @@ public class InfiniteManager : MonoBehaviour
                 }
             }
         }
+
+        mainThreadRun.Update();
     }
 
     void FixedUpdate()
@@ -619,7 +622,7 @@ public class InfiniteManager : MonoBehaviour
 
                 rewardedAdManager.ShowRewardedAd(() => { }, () =>
                 {
-                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    mainThreadRun.Enqueue(() =>
                     {
                         playerData.coins += gameCoinsCollected;
                         playerData.totalCoins += gameCoinsCollected;
@@ -637,7 +640,7 @@ public class InfiniteManager : MonoBehaviour
                     });
                 }, () =>
                 {
-                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    mainThreadRun.Enqueue(() =>
                     {
                         doubleCoinsButton.interactable = true;
 
@@ -663,7 +666,7 @@ public class InfiniteManager : MonoBehaviour
 
             interstitialAdManager.ShowInterstitial(() =>
             {
-                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                mainThreadRun.Enqueue(() =>
                 {
                     gameOverPanel.gameObject.SetActive(true);
                     gameOverPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
@@ -768,7 +771,7 @@ public class InfiniteManager : MonoBehaviour
 
         rewardedAdManager.ShowRewardedAd(() => { }, () =>
         {
-            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            mainThreadRun.Enqueue(() =>
             {
                 watchAdRevive.interactable = true;
 
@@ -780,7 +783,7 @@ public class InfiniteManager : MonoBehaviour
             });
         }, () =>
         {
-            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            mainThreadRun.Enqueue(() =>
             {
                 watchAdRevive.interactable = true;
 

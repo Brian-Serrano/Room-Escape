@@ -1,4 +1,3 @@
-using PimDeWitte.UnityMainThreadDispatcher;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -107,6 +106,7 @@ public class GameManager : MonoBehaviour
     private RewardedAdManager rewardedAdManager;
     private InterstitialAdManager interstitialAdManager;
     private Action closeAdLoadFailedPanelAction;
+    private MainThreadRun mainThreadRun;
 
     private List<int> levelsQuest = new List<int>() { 2, 4, 6 };
     private List<int> attemptsQuest = new List<int>() { 5, 10, 15 };
@@ -125,6 +125,7 @@ public class GameManager : MonoBehaviour
         deathType = DeathType.NONE;
         rewardedAdManager = RewardedAdManager.GetInstance();
         interstitialAdManager = InterstitialAdManager.GetInstance();
+        mainThreadRun = MainThreadRun.GetInstance();
 
         BannerAdManager.GetInstance().EnsureBannerVisible();
 
@@ -358,6 +359,8 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+
+        mainThreadRun.Update();
     }
 
     void FixedUpdate()
@@ -638,7 +641,7 @@ public class GameManager : MonoBehaviour
 
             interstitialAdManager.ShowInterstitial(() =>
             {
-                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                mainThreadRun.Enqueue(() =>
                 {
                     gameOverPanel.gameObject.SetActive(true);
                     gameOverPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
@@ -744,7 +747,7 @@ public class GameManager : MonoBehaviour
 
         rewardedAdManager.ShowRewardedAd(() => { }, () =>
         {
-            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            mainThreadRun.Enqueue(() =>
             {
                 watchAdRevive.interactable = true;
 
@@ -756,7 +759,7 @@ public class GameManager : MonoBehaviour
             });
         }, () =>
         {
-            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            mainThreadRun.Enqueue(() =>
             {
                 watchAdRevive.interactable = true;
 
@@ -862,7 +865,7 @@ public class GameManager : MonoBehaviour
 
                 rewardedAdManager.ShowRewardedAd(() => { }, () =>
                 {
-                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    mainThreadRun.Enqueue(() =>
                     {
                         playerData.coins += gameCoinsCollected;
                         playerData.totalCoins += gameCoinsCollected;
@@ -880,7 +883,7 @@ public class GameManager : MonoBehaviour
                     });
                 }, () =>
                 {
-                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    mainThreadRun.Enqueue(() =>
                     {
                         doubleCoinsButton.interactable = true;
 
@@ -904,7 +907,7 @@ public class GameManager : MonoBehaviour
 
         interstitialAdManager.ShowInterstitial(() =>
         {
-            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            mainThreadRun.Enqueue(() =>
             {
                 winPanel.gameObject.SetActive(true);
                 winPanel.GetChild(1).GetComponent<Animator>().SetBool("isOpen", true);
